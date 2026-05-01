@@ -58,38 +58,38 @@ class HTDWMotor:
         self.current_rpm = 0.0
 
 class GimbalController:
-    """Dual-axis gimbal controller with PID position servo."""
     def __init__(self, 
                  channel: str = "PCAN_USBBUS1", 
                  bitrate: int = 1000000,
                  yaw_id: int = 0x8001, 
                  pitch_id: int = 0x8002,
-                 mock: bool = False):
+                 mock: bool = False,
+                 yaw_zero_offset: float = 0.0,   # 🔥 新增：Yaw 轴机械/光学零位补偿
+                 pitch_zero_offset: float = 0.0): # 🔥 新增：Pitch 轴机械/光学零位补偿
         self.mock = mock
-        self.bus = None
-        self.motor_yaw = None
-        self.motor_pitch = None
+        self.yaw_can_id = yaw_id
+        self.pitch_can_id = pitch_id
         
-        # 云台参数
         self.max_yaw = 20.0
         self.max_pitch = 15.0
-        self.max_speed_rpm = 500.0  # 云台安全转速
+        self.max_speed_rpm = 500.0
         self.system_latency_ms = 80.0
         
-        # 控制状态
-        self.target_yaw = 0.0
-        self.target_pitch = 0.0
+        # 🔥 零位补偿参数
+        self.yaw_zero_offset = yaw_zero_offset
+        self.pitch_zero_offset = pitch_zero_offset
+        
         self.current_yaw = 0.0
         self.current_pitch = 0.0
+        self.target_yaw = 0.0
+        self.target_pitch = 0.0
         
-        # PID 参数 (位置环 → RPM)
         self.Kp, self.Ki, self.Kd = 3.0, 0.2, 0.1
         self.int_y, self.int_p = 0.0, 0.0
         self.err_y_prev, self.err_p_prev = 0.0, 0.0
         
         if not mock:
-            if not CAN_AVAILABLE:
-                raise RuntimeError("python-can not installed.")
+            if not CAN_AVAILABLE: raise RuntimeError("python-can not installed.")
             print(f"🔌 初始化 PCAN: {channel} @ {bitrate//1000}Mbps...")
             self.bus = can.interface.Bus(interface="pcan", channel=channel, bitrate=bitrate)
             self.motor_yaw = HTDWMotor(self.bus, yaw_id)
@@ -99,14 +99,21 @@ class GimbalController:
             print("🎮 Gimbal in MOCK mode")
 
     def set_target_angles(self, yaw: float, pitch: float):
-        self.target_yaw = float(np.clip(yaw, -self.max_yaw, self.max_yaw))
-        self.target_pitch = float(np.clip(pitch, -self.max_pitch, self.max_pitch))
+        # 🔥 叠加零位补偿，确保物理中位对齐
+        self.target_yaw = float(np.clip(yaw, -self.max_yaw, self.max_yaw)) + self.yaw_zero_offset
+        self.target_pitch = float(np.clip(pitch, -self.max_pitch, self.max_pitch)) + self.pitch_zero_offset
+
+    def stop_motors(self):
+        """🔥 无目标时：重置目标为当前位置，发送 0 速指令保持（防漂移）"""
+        self.target_yaw = self.current_yaw
+        self.target_pitch = self.current_pitch
+        if not self.mock:
+            self.motor_yaw.set_speed(0.0)
+            self.motor_pitch.set_speed(0.0)
 
     def update(self, dt: float = 0.02):
-        """位置伺服控制环，返回 RPM 指令"""
         # 1. 延迟预测
         lat = self.system_latency_ms / 1000.0
-        # 假设目标可能移动，此处简化为预测目标角度（实际需结合视觉预测）
         pred_yaw = self.target_yaw
         pred_pitch = self.target_pitch
         
@@ -114,7 +121,7 @@ class GimbalController:
         err_y = pred_yaw - self.current_yaw
         err_p = pred_pitch - self.current_pitch
         
-        # 3. PID 计算 → RPM
+        # 3. PID 计算
         self.int_y = float(np.clip(self.int_y + err_y * dt, -10.0, 10.0))
         self.int_p = float(np.clip(self.int_p + err_p * dt, -10.0, 10.0))
         
@@ -124,19 +131,15 @@ class GimbalController:
         self.err_y_prev = err_y
         self.err_p_prev = err_p
         
-        # 4. 限幅与发送
         cmd_rpm_y = float(np.clip(rpm_y, -self.max_speed_rpm, self.max_speed_rpm))
         cmd_rpm_p = float(np.clip(rpm_p, -self.max_speed_rpm, self.max_speed_rpm))
         
         if self.mock:
-            # Mock 模式下模拟运动
-            self.current_yaw += cmd_rpm_y * dt * 0.1  # 模拟减速比
+            self.current_yaw += cmd_rpm_y * dt * 0.1
             self.current_pitch += cmd_rpm_p * dt * 0.1
         else:
             if self.motor_yaw.enabled: self.motor_yaw.set_speed(cmd_rpm_y)
             if self.motor_pitch.enabled: self.motor_pitch.set_speed(cmd_rpm_p)
-            
-            # 读取反馈帧更新实际位置（需根据编码器数据积分）
             self._read_feedback()
             
         return cmd_rpm_y, cmd_rpm_p

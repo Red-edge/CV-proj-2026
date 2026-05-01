@@ -1,31 +1,26 @@
 #!/usr/bin/env python3
-"""
-Camera-to-Angle Mapper for Gimbal Tracking
-Converts pixel coordinates (bbox center) to Yaw/Pitch angles relative to optical axis.
-"""
 import numpy as np
 
 class CameraAngleMapper:
-    def __init__(self, h_fov_deg: float = 45.0, v_fov_deg: float = 30.0, 
-                 img_w: int = 1280, img_h: int = 720):
+    def __init__(self, h_fov_deg: float, v_fov_deg: float):
         self.h_fov = np.radians(h_fov_deg)
         self.v_fov = np.radians(v_fov_deg)
-        self.cx = img_w / 2.0
-        self.cy = img_h / 2.0
-        # 等效焦距 (像素单位)
-        self.fx = self.cx / np.tan(self.h_fov / 2.0)
-        self.fy = self.cy / np.tan(self.v_fov / 2.0)
-        print(f"📐 Mapper init: {img_w}x{img_h}, HFOV={h_fov_deg}°, VFOV={v_fov_deg}°")
 
-    def pixel_to_angle(self, px: float, py: float) -> tuple:
+    def pixel_to_angle(self, px: float, py: float, frame_w: int, frame_h: int) -> tuple:
         """
-        将像素坐标转换为相对于光轴的角度 (度)
-        yaw: 水平偏角 (右正左负)
-        pitch: 垂直偏角 (上正下负)
+        动态计算角度，确保无论分辨率如何变化，中心点永远准确。
         """
-        # 图像Y轴向下，世界坐标系Y轴向上，需取反
-        yaw = np.degrees(np.arctan2(px - self.cx, self.fx))
-        pitch = -np.degrees(np.arctan2(py - self.cy, self.fy))
+        cx, cy = frame_w / 2.0, frame_h / 2.0
+        fx = cx / np.tan(self.h_fov / 2.0)
+        fy = cy / np.tan(self.v_fov / 2.0)
+        
+        # Yaw: 目标在右侧 (px > cx) -> 需向右转 (Yaw > 0)
+        yaw = np.degrees(np.arctan2(px - cx, fx))
+        
+        # Pitch: 目标在下侧 (py > cy) -> 需向下转 (Pitch < 0)
+        # 注意：这里加了负号，因为图像 Y 轴向下，而云台 Pitch 轴通常向上为正
+        pitch = -np.degrees(np.arctan2(py - cy, fy))
+        
         return yaw, pitch
 
     def angle_to_pixel(self, yaw_deg: float, pitch_deg: float) -> tuple:

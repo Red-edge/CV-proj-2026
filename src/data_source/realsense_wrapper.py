@@ -38,18 +38,23 @@ class RealSenseT265:
             return False
 
     def get_frame(self):
-        if not self.is_initialized:
-            return None, None
+        if not self.is_initialized: return None, None
         try:
             frames = self.pipe.wait_for_frames()
             fisheye = frames.get_fisheye_frame(1)
-            if not fisheye:
-                return None, None
-                
-            # 提取左眼 Y8 灰度图 (main.py 会自动转 BGR)
+            if not fisheye: return None, None
+            
             img = np.asanyarray(fisheye.get_data())
-            pose = frames.get_pose_frame()  # 可选：返回位姿数据
-            return img, pose
+            
+            # 🔥 提取 T265 IMU 角速度 (rad/s)
+            ang_vel = None
+            pose_frame = frames.get_pose_frame()
+            if pose_frame:
+                pd = pose_frame.get_pose_data()
+                # (wx, wy, wz) 对应 Pitch, Yaw, Roll 角速度
+                ang_vel = (pd.angular_velocity.x, pd.angular_velocity.y, pd.angular_velocity.z)
+                
+            return img, ang_vel
         except Exception as e:
             print(f"⚠ 获取 T265 帧失败: {e}")
             return None, None

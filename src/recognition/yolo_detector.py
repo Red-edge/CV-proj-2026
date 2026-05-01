@@ -58,6 +58,7 @@ class YOLODetector:
         frame: np.ndarray,
         rois: Optional[List[Tuple[int, int, int, int]]] = None,
         use_roi_crop: bool = False,
+        classes: List[int] = [0],  # 🔥 默认仅检测 Person (COCO index 0)
         **kwargs
     ) -> List[Dict]:
         """
@@ -67,6 +68,7 @@ class YOLODetector:
             frame: BGR image (H, W, 3)
             rois: List of (x, y, w, h) ROI boxes (optional)
             use_roi_crop: If True + rois provided, run YOLO on each ROI crop separately
+            classes: COCO class indices to keep. Default [0] = "person"
             **kwargs: Other Ultralytics-compatible args (imgsz, conf, iou, etc.)
         
         Returns:
@@ -75,7 +77,11 @@ class YOLODetector:
         if self.model is None:
             return []
 
-        # 🔥 Handle ROI cropping logic BEFORE calling Ultralytics
+        # 🔥 过滤自定义参数，保留 Ultralytics 原生参数
+        valid_kwargs = {k: v for k, v in kwargs.items() 
+                        if k not in ['use_roi_crop', 'rois', 'classes']}
+        valid_kwargs['classes'] = classes  # 🔥 强制注入类别过滤，底层直接屏蔽无关目标
+
         if use_roi_crop and rois:
             all_detections = []
             h, w = frame.shape[:2]
@@ -91,43 +97,29 @@ class YOLODetector:
                 if rx2 <= rx or ry2 <= ry:
                     continue
                     
-                # Crop and run inference
                 roi_frame = frame[ry:ry2, rx:rx2]
                 if roi_frame.size == 0:
                     continue
                     
                 # Run YOLO on cropped ROI
-                results = self.model(roi_frame, verbose=False, device=self.device, **kwargs)
+                results = self.model(roi_frame, verbose=False, device=self.device, **valid_kwargs)
                 
-                # Map detections back to full-frame coordinates
                 for r in results:
                     if r.boxes is None:
                         continue
                     for box in r.boxes:
                         x1, y1, x2, y2 = box.xyxy[0].cpu().tolist()
-                        # Add ROI offset
-                        x1 += rx
-                        y1 += ry
-                        x2 += rx
-                        y2 += ry
-                        
-                        conf = float(box.conf[0])
-                        cls_id = int(box.cls[0])
-                        cls_name = self.model.names[cls_id]
+                        x1 += rx; y1 += ry; x2 += rx; y2 += ry  # 坐标映射回全图
                         
                         all_detections.append({
                             "bbox": [x1, y1, x2, y2],
-                            "confidence": conf,
-                            "class_name": cls_name,
+                            "confidence": float(box.conf[0]),
+                            "class_name": self.model.names[int(box.cls[0])],
                         })
             return all_detections
         else:
-            # Full-frame inference (original behavior)
             try:
-                # Filter out Ultralytics-incompatible kwargs
-                valid_kwargs = {k: v for k, v in kwargs.items() 
-                               if k not in ['use_roi_crop', 'rois']}
-                
+                # Full-frame inference
                 results = self.model(frame, verbose=False, device=self.device, **valid_kwargs)
                 
                 detections = []
@@ -136,14 +128,10 @@ class YOLODetector:
                         continue
                     for box in r.boxes:
                         x1, y1, x2, y2 = box.xyxy[0].cpu().tolist()
-                        conf = float(box.conf[0])
-                        cls_id = int(box.cls[0])
-                        cls_name = self.model.names[cls_id]
-
                         detections.append({
                             "bbox": [x1, y1, x2, y2],
-                            "confidence": conf,
-                            "class_name": cls_name,
+                            "confidence": float(box.conf[0]),
+                            "class_name": self.model.names[int(box.cls[0])],
                         })
                 return detections
             except Exception as e:

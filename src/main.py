@@ -660,7 +660,7 @@ class VideoRecorder:
 
 def parse_args():
     p = argparse.ArgumentParser(description="64-Point Motion-Guided YOLO Detection with Gimbal Tracking")
-    p.add_argument("--source", default="1")
+    p.add_argument("--source", default="realsense", help="Video source: realsense / 0 / path/to/video.mp4")
     p.add_argument("--use-yolo", action="store_true")
     p.add_argument("--device", default="mps", choices=["cpu","mps","cuda"])
     p.add_argument("--reset-warmup-frames", type=int, default=3)

@@ -69,7 +69,7 @@ class Track:
         
         # Initial state
         x, y, w, h = self._bbox_to_xywh(bbox)
-        kf.x[:4] = [x, y, w, h, 0, 0, 0]
+        kf.x = np.array([x, y, w, h, 0.0, 0.0, 0.0]).reshape(-1, 1)
         
         return kf
     
@@ -89,11 +89,12 @@ class Track:
         self.time_since_update += 1
         
         # Get predicted state
-        pred_state = self.kf.x[:4]
+        pred_state = self.kf.x[:4].flatten()
         pred_bbox = self._xywh_to_bbox(pred_state)
         
         # Ensure valid coordinates
         pred_bbox = [max(0, c) for c in pred_bbox]
+        self.state = pred_bbox
         
         return pred_bbox
     
@@ -185,8 +186,7 @@ class MultiObjectTracker:
                           if i not in [m[0] for m in matched_indices]]
         
         if unmatched_tracks and low_conf_dets:
-            unmatched_pred = [(self.tracks[i], self.tracks[i].predict()) 
-                            for i in unmatched_tracks]
+            unmatched_pred = [predicted_tracks[i] for i in unmatched_tracks]
             low_matched = self._match_detections(unmatched_pred, low_conf_dets)
             
             for track_idx_local, det_idx in low_matched:

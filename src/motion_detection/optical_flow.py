@@ -108,7 +108,7 @@ class OpticalFlowCalculator:
             a, b = new.ravel()
             c, d = old.ravel()
             
-            magnitude = np.sqrt((a - c)**2 + **(b - d)2)
+            magnitude = np.sqrt((a - c)**2 + (b - d)**2)
             flow_vectors.append({
                 'start': (int(c), int(d)),
                 'end': (int(a), int(b)),

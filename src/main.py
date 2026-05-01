@@ -662,7 +662,7 @@ def parse_args():
     p = argparse.ArgumentParser(description="64-Point Motion-Guided YOLO Detection with Gimbal Tracking")
     p.add_argument("--source", default="1")
     p.add_argument("--use-yolo", action="store_true")
-    p.add_argument("--device", default="cpu", choices=["cpu","mps","cuda"])
+    p.add_argument("--device", default="mps", choices=["cpu","mps","cuda"])
     p.add_argument("--reset-warmup-frames", type=int, default=3)
     p.add_argument("--min-yolo-box-width", type=int, default=30)
     p.add_argument("--min-yolo-box-height", type=int, default=50)

@@ -1,0 +1,54 @@
+# ============================================
+# Motion-Guided YOLO + Gimbal Tracking System
+# requirements.txt - 依赖列表
+# ============================================
+
+# 🔹 核心视觉库
+opencv-python>=4.8.0.74        # 图像处理/视频捕获
+opencv-contrib-python>=4.8.0.74  # 可选：额外算法 (LK 光流等)
+numpy>=1.24.0,<2.0.0           # 数值计算 (暂不兼容 numpy 2.0)
+
+# 🔹 YOLO 推理引擎
+ultralytics>=8.2.0             # YOLO11/YOLOv8 官方库
+
+# 🔹 CAN 通信 (电机控制)
+python-can>=4.3.0              # 跨平台 CAN 接口 (支持 PCAN/SocketCAN)
+
+# 🔹 可选：平台加速后端
+# --- macOS (Apple Silicon) ---
+# torch>=2.1.0                 # PyTorch MPS 后端 (如需 .pt 模型)
+# coremltools>=7.0.0           # CoreML 导出/加载 (如需 .mlpackage)
+
+# --- RK3588 / Jetson ---
+# torch>=2.0.0                 # PyTorch CUDA 后端
+# rknn-toolkit2-lite>=2.3.0    # RKNN 量化部署 (RK3588 专用)
+# jetson-utils>=2.0.0          # Jetson 工具链 (可选)
+
+# 🔹 可选：开发/调试工具
+albumentations>=1.3.0          # 数据增强 (训练/测试用)
+pillow>=10.0.0                 # 图像保存/处理
+tqdm>=4.66.0                   # 进度条 (可选)
+
+# 🔹 平台特定依赖 (按需取消注释)
+# --- macOS ---
+# pyobjc-framework-Cocoa>=10.0; sys_platform == "darwin"
+
+# --- Linux (RK3588/Jetson) ---
+# pyserial>=3.5; sys_platform == "linux"  # 备用串口通信
+
+# ============================================
+# 💡 安装说明
+# ============================================
+# 1. 基础安装 (所有平台):
+#    pip install -r requirements.txt
+
+# 2. macOS + CoreML 加速:
+#    pip install -r requirements.txt
+#    pip install coremltools torch
+
+# 3. RK3588 + RKNN 量化:
+#    pip install -r requirements.txt --extra-index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/simple
+#    pip install rknn-toolkit2-lite
+
+# 4. 验证安装:
+#    python -c "import cv2, numpy, ultralytics, can; print('✅ All imports OK')"

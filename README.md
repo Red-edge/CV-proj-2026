@@ -1,513 +1,624 @@
-# 🎯 Motion-Guided YOLO + Gimbal Tracking System
+# CV-proj-2026
 
-> 基于 64/128/256 点固定网格光流检测的运动引导目标跟踪系统，集成 YOLO 检测与二轴云台实时联动。
+面向移动平台的高帧率视觉处理项目。当前仓库已经新增一条以 C++ 为主的实现路径，目标是把原先偏 Python 实验性质的“运动先验 ROI + 视觉处理”流程，迁移成可以直接接海康工业相机、跑高帧率、并录制处理结果的视频管线。
 
----
+这次迁移的核心取舍是：
 
-## 📋 目录
+- 主目标从 `RealSense T265 + VIO` 转为 `Hikrobot MV-CS016-10UC + 高帧率图像处理`
+- 保留项目真正的意图：在运动环境中快速找出值得处理的区域，并对目标做稳定的图像级处理与跟踪
+- 当前 C++ 热路径不包含陀螺仪/VIO 相关的光流补偿，优先保证取流、处理、录制、工程结构和高 FPS 可达性
+- 当前仓库同时支持 `Hikrobot MVS SDK` 与 `USB3 Vision / GenICam`
+- 对“后续要接电机控制”的场景，优先建议走 `Hikrobot MVS SDK`
+- `Aravis` 保留为无 SDK 场景下的标准协议回退路径
 
-- [🔧 系统要求](#-系统要求)
-- [📦 环境配置](#-环境配置)
-- [🗂️ 项目结构](#️-项目结构)
-- [🚀 快速启动](#-快速启动)
-- [⚙️ 参数说明](#️-参数说明)
-- [🎮 云台控制集成](#-云台控制集成)
-- [🧪 测试与调试](#-测试与调试)
-- [🔍 故障排查](#-故障排查)
-- [🛠️ 开发指南](#️-开发指南)
+## 当前状态
 
----
+- 已新增 `cpp/` CMake 工程
+- 已新增 `HikrobotMvsSource`，按海康 MVS SDK 的 C API 方式接入
+- 已新增 `OpenCvVideoSource` 回退源，可在没有相机和 SDK 时用摄像头或已有视频调试
+- 已新增 `AravisFrameSource`，可直接通过 `USB3 Vision / GenICam` 标准协议接入工业相机
+- 已迁移固定网格光流、全局中值流补偿、ROI 生成、运动 blob 跟踪、可视化叠加、视频录制
+- 已新增 `YOLO ONNX` 可选检测支路，支持在 C++ 中复用运动 ROI 做低频目标检测
+- 已从 `src/yolo11n.pt` 导出 `src/yolo11n.onnx`
+- Python 代码仍保留在 `src/`，作为旧实验版本和模型参考
 
-## 🔧 系统要求
+## 本机验证结果
 
-### 硬件配置
+截至 `2026-05-22`，这台 MacBook Air M4 上已经完成的验证有：
 
-| 组件 | 推荐配置 | 最低配置 | 说明 |
-|:---|:---|:---|:---|
-| **处理器** | RK3588 / Jetson Orin Nano | MacBook M1/M2/M3 | RK3588 为量产首选 |
-| **内存** | ≥4GB | ≥2GB | YOLO 推理需 1.5GB+ |
-| **摄像头** | RealSense T265 / USB UVC | 任意 720p 摄像头 | 需支持 MJPEG/YUV422 |
-| **云台电机** | HTDW-5047-36-NE ×2 | 任意支持速度控制的舵机 | 需支持位置/速度闭环 |
-| **CAN 接口** | PCAN-USB / SocketCAN | USB-TTL (模拟) | 用于电机通信 |
-| **存储** | ≥16GB eMMC/SD | ≥8GB | 模型 + 系统 + 日志 |
+- `cmake -S . -B build && cmake --build build -j8` 可成功构建
+- 已确认相机被 macOS 枚举为 `MV-CS016-10UC`，序列号 `DB0178676`
+- 已确认标准协议栈 `Aravis` 可发现这台相机
+- 已通过管理员权限方式成功跑通真机取流
+- 使用仓库内现有视频跑通 C++ 处理链并输出新视频
+- 输出文件: `outputs/cpp_processed_demo.mp4`
+- 输出规格: `1280x720 @ 60fps, 600 frames, 10s`
+- 离线回放时主处理链末次显示 FPS 约为 `558.8`
+- 离线回放时端到端循环末次显示 FPS 约为 `410.0`
+- 已跑通 `YOLO ONNX` 检测支路并输出 `outputs/cpp_yolo_demo.mp4`
+- `YOLO ONNX` 样例输出规格: `1280x720 @ 60fps, 300 frames, 5s`
+- `YOLO ONNX` 离线样例端到端循环末次显示 FPS 约为 `345.4`
+- 已输出真机标准协议处理视频: `outputs/aravis_live_demo.mp4`
+- 真机处理视频录制参数: `960x540`, `ExposureTime=3000us`, `target_fps=240`, `480 frames`
+- 真机处理主链末次显示 FPS 约为 `516.8`
+- 真机端到端循环末次显示 FPS 约为 `355.5`
+- 已输出基于真实相机帧的推理视频: `outputs/aravis_live_yolo_demo_v2.mp4`
 
-### 软件环境
+当前关于 `MVS` 的本机现状：
 
-| 平台 | 操作系统 | Python | 关键依赖 |
-|:---|:---|:---|:---|
-| **Mac (开发)** | macOS 12+ | 3.8~3.11 | `python-can`, `ultralytics`, `opencv-python` |
-| **RK3588 (部署)** | Ubuntu 22.04 (aarch64) | 3.8~3.10 | 同上 + `rknn-toolkit2` (可选) |
-| **Jetson (备选)** | JetPack 5.1+ | 3.8~3.10 | 同上 + `jetson-utils` (可选) |
+- 仓库里的 `hikrobot` 后端已经具备取流、增益/曝光设置、latest-frame 读取、livestream 遥测输出这些基础能力
+- 但这台 MacBook Air M4 当前还没有检测到本地 `MVS SDK`
+- 因此当前已经完成实测的视频与 demo 主要来自 `Aravis` 路径
 
----
+尚未在本机完成的验证有：
 
-## 📦 环境配置
+- 基于 `Aravis` 的长时间稳定在线推理压测
+- 云台控制迁移到 C++
 
-### 1️⃣ 创建虚拟环境（推荐）
+## 项目结构
 
-```bash
-# Mac / Linux
-python3 -m venv cv-env
-source cv-env/bin/activate
-
-# Windows (PowerShell)
-python -m venv cv-env
-.\cv-env\Scripts\Activate.ps1
-```
-
-### 2️⃣ 安装依赖
-
-```bash
-# 基础依赖
-pip install -r requirements.txt
-
-# macOS 额外：安装 PCAN 驱动支持
-brew install libpcan  # 或从 PEAK-System 官网下载 .kext
-
-# RK3588 额外：安装 RKNN 支持（如需量化加速）
-pip install rknn-toolkit2-lite --extra-index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/simple
-```
-
-### 3️⃣ 验证安装
-
-```bash
-# 检查 Python 依赖
-python -c "import cv2, numpy, ultralytics, can; print('✅ All imports OK')"
-
-# 检查摄像头
-python -c "import cv2; cap=cv2.VideoCapture(0); print('✅ Camera:', cap.isOpened())"
-
-# 检查 CAN 接口 (需连接硬件)
-python -c "import can; print(can.list_interfaces(bustype='pcan'))"
-```
-
----
-
-## 🗂️ 项目结构
-
-```
+```text
 CV-proj-2026/
+├── CMakeLists.txt
+├── cpp/
+│   ├── CMakeLists.txt
+│   ├── include/cvproj/
+│   │   ├── aravis_frame_source.hpp
+│   │   ├── frame_source.hpp
+│   │   ├── hikrobot_mvs_source.hpp
+│   │   ├── motion_pipeline.hpp
+│   │   └── opencv_video_source.hpp
+│   └── src/
+│       ├── aravis_frame_source.cpp
+│       ├── hikrobot_mvs_source.cpp
+│       ├── main.cpp
+│       ├── motion_pipeline.cpp
+│       ├── opencv_video_source.cpp
+│       └── yolo_onnx_detector.cpp
 ├── src/
-│   ├── main.py                 # 主入口：检测 + 跟踪 + 云台联动
-│   ├── camera_mapper.py        # 像素坐标 → 云台角度映射
-│   ├── gimbal_controller.py    # HTDW 电机控制封装
-│   ├── htdw_motor_ctrl.py      # 独立电机测试脚本
-│   ├── requirements.txt        # Python 依赖列表
-│   │
-│   ├── data_source/
-│   │   ├── __init__.py
-│   │   ├── realsense_wrapper.py  # T265/摄像头封装
-│   │   └── video_fallback.py     # OpenCV 摄像头回退
-│   │
-│   ├── recognition/
-│   │   ├── __init__.py
-│   │   └── yolo_detector.py      # YOLO 推理封装 (支持.pt/.mlpackage)
-│   │
-│   └── tracking/
-│       ├── __init__.py
-│       └── multi_object_tracker.py  # Kalman+IoU 多目标跟踪
-│
-├── models/                     # 模型存放目录
-│   ├── yolo11n.pt             # PyTorch 格式
-│   ├── yolo11n.mlpackage      # CoreML 格式 (Mac 加速)
-│   └── best_int8.rknn         # RKNN 量化格式 (RK3588)
-│
-├── outputs/                    # 输出目录 (自动创建)
-│   ├── *.mp4                  # 录制视频
-│   └── *.png                  # 截图
-│
-├── README.md                  # 本文档
-└── LICENSE                    # 开源协议
+│   └── ... 旧 Python 实现
+└── project_docs/
+    └── ... 历史设计文档
 ```
 
----
+## 重新理解后的项目意图
 
-## 🚀 快速启动
+这个项目不该被理解成“把一个摄像头脚本换成另一个摄像头脚本”，而应该理解成：
 
-### 🔹 模式 1：纯视觉检测（无云台）
+1. 从高帧率相机稳定拿到图像
+2. 在极低延迟下做运动感知
+3. 用运动先验压缩后续处理范围
+4. 输出可视化结果与可复盘的视频
+5. 未来再把检测器、云台、IMU/VIO 优化逐步挂回主链
+
+所以这次 C++ 迁移优先落地的是“能高帧率跑起来的主链”，而不是先把所有低速附加功能堆进去。
+
+## 依赖
+
+### macOS
+
+- Xcode Command Line Tools
+- CMake 3.22+
+- OpenCV C++ 开发包
+- Aravis
+
+官方资源：
+
+- Hikrobot MVS 下载页: <https://www.hikrobotics.com/en/machinevision/service/download/>
+- Hikrobot USB3 Area Scan Camera User Manual: <https://www.hikrobotics.com/en2/source/vision/document/2023/8/18/UD31198B_USB3.0%20Area%20Scan%20Camera%20User%20Manual_V2.4.0_20230307.pdf>
+- Aravis 官方文档: <https://aravisproject.github.io/docs/aravis-0.8/>
+- Aravis GitHub: <https://github.com/AravisProject/aravis>
+
+### 建议安装
 
 ```bash
-# Mac 测试：摄像头 + YOLO + 光流引导
-python src/main.py \
-  --use-yolo \
-  --source 0 \
-  --device mps \
-  --resize-input \
-  --yolo-model models/yolo11n.mlpackage \
+brew install cmake opencv aravis
+```
+
+## 构建
+
+```bash
+cd /Users/rededge/Documents/workspace/CV-proj-2026
+cmake -S . -B build
+cmake --build build -j8
+```
+
+生成的主程序：
+
+```text
+build/cpp/cvproj_capture
+```
+
+如果构建日志里提示 `Aravis enabled`，说明标准协议后端已接入成功。`Hikrobot MVS SDK not found` 在当前路线下不是阻塞项。
+
+## 运行
+
+### 0. 控制场景的后端选择
+
+如果你的目标是后续接入云台/电机控制，推荐优先顺序是：
+
+1. `--backend hikrobot`
+2. `--backend aravis`
+
+原因很简单：
+
+- `MVS` 是海康原生 SDK，控制链更适合作为主路径
+- `Aravis` 在本机上已经验证能取流，但管理员态的 USB bootstrap 偶发不稳定
+- 所以 `Aravis` 更适合作为取流验证或无 SDK 回退方案
+
+### 0.1 安装 MVS SDK
+
+当前仓库查找 MVS SDK 的路径包括：
+
+- `HIKROBOT_MVS_ROOT/include`
+- `HIKROBOT_MVS_ROOT/lib`
+- `/opt/MVS`
+- `/Applications/MVS.app/Contents`
+
+当前这台机器上还没有找到：
+
+- `MvCameraControl.h`
+- `MvCameraControl` / `libMvCameraControl`
+
+官方资料里可以确认两点：
+
+- 海康下载中心当前仍提供 `MacOS` 过滤项  
+  <https://www.hikrobotics.com/en/machinevision/service/download/>
+- 较新的官方手册也写到 `MVS client software` 兼容 `64-bit MacOS`，并说明非 Windows 版本可通过技术支持获取安装包  
+  <https://www.hikrobotics.com/en2/Hikrobotics/Machine%20Vision/01%20Product/%E5%B7%A5%E4%B8%9A%E9%9D%A2%E9%98%B5%E7%9B%B8%E6%9C%BA/CH/%E7%94%A8%E6%88%B7%E6%89%8B%E5%86%8C/UD19483B_Camera%20Link%20Area%20Scan%20Camera%20User%20Manual_V2.0.2_20200710.pdf>
+
+安装完成后建议这样构建：
+
+```bash
+export HIKROBOT_MVS_ROOT="/Applications/MVS.app/Contents"
+cmake -S . -B build
+cmake --build build -j8
+```
+
+如果构建输出里看到 `Hikrobot MVS SDK enabled`，说明已经切到 MVS 主路径。
+
+### 1. 用已有视频回放验证 C++ 管线
+
+```bash
+./build/cpp/cvproj_capture \
+  --backend opencv \
+  --source src/outputs/motion_guided_yolo_20260501_200409.mp4 \
+  --fps 60 \
+  --grid-points 128 \
   --motion-thresh 2.0 \
-  --num-motion-points 128
-
-# 按键控制：
-#   q = 退出 | r = 重置 | s = 截图 | v = 录制 | +/- = 调整运动阈值
+  --record outputs/cpp_processed_demo.mp4 \
+  --max-frames 600 \
+  --headless
 ```
 
-### 🔹 模式 2：云台跟踪（Mock 模拟）
+这条命令适合在没有海康 SDK、没有真机接入时，先验证：
+
+- 读帧
+- 光流处理
+- ROI 生成
+- 运动目标框
+- 处理后视频写盘
+
+仓库当前已经用这条路径生成了：
+
+```text
+outputs/cpp_processed_demo.mp4
+```
+
+### 1.1 用 YOLO ONNX 路径验证“运动 ROI + 检测”
 
 ```bash
-# 无硬件测试云台逻辑
-python src/main.py \
-  --use-yolo \
-  --mock-gimbal \
+./build/cpp/cvproj_capture \
+  --backend opencv \
+  --source src/outputs/motion_guided_yolo_20260501_200409.mp4 \
+  --fps 60 \
+  --grid-points 128 \
+  --motion-thresh 2.0 \
+  --detector yolo \
+  --model src/yolo11n.onnx \
+  --detect-interval 6 \
+  --det-conf 0.25 \
+  --record outputs/cpp_yolo_demo.mp4 \
+  --max-frames 300 \
+  --headless
+```
+
+仓库当前已经用这条路径生成了：
+
+```text
+outputs/cpp_yolo_demo.mp4
+```
+
+### 2. 用普通摄像头调通实时链路
+
+```bash
+./build/cpp/cvproj_capture \
+  --backend opencv \
   --source 0 \
-  --device mps \
-  --resize-input \
-  --h-fov 45.0 \
-  --v-fov 30.0 \
-  --yolo-model models/yolo11n.mlpackage
+  --width 1280 \
+  --height 720 \
+  --fps 60 \
+  --grid-points 128 \
+  --motion-thresh 2.0
 ```
 
-### 🔹 模式 3：真实云台联动（RK3588 + PCAN）
+### 3. 通过标准协议接入海康 MV-CS016-10UC
+
+macOS `2026-05-22` 这台机器上的实测情况是：
+
+- 普通用户态下，`Aravis/libusb` 能发现并控制相机，但 streaming interface claim 会失败
+- 通过 macOS 管理员权限启动采集程序后，真机取流可正常运行
+
+因此推荐直接这样跑：
 
 ```bash
-# 1. 确保硬件连接：
-#    - 摄像头 → USB/MIPI
-#    - HTDW 电机 → PCAN-USB → RK3588 USB
-#    - 激光笔 → 云台出轴
-
-# 2. 加载 CAN 驱动 (RK3588)
-sudo modprobe pcan
-sudo ip link set can0 up type pcan bitrate 1000000
-
-# 3. 运行主程序
-python src/main.py \
-  --use-yolo \
-  --source realsense \
-  --device mps \
-  --resize-input \
-  --can-channel can0 \
-  --h-fov 44.8 \
-  --v-fov 29.6 \
-  --yolo-model models/yolo11n.mlpackage \
-  --motion-thresh 2.5 \
-  --num-motion-points 256
+osascript -e 'do shell script "\
+/Users/rededge/Documents/workspace/CV-proj-2026/build/cpp/cvproj_capture \
+  --backend aravis \
+  --width 960 \
+  --height 540 \
+  --fps 240 \
+  --exposure-us 3000 \
+  --gain-db 12 \
+  --target-luma 96 \
+  --max-post-gain 6 \
+  --gamma 0.8 \
+  --pixel-format Mono8 \
+  --grid-points 128 \
+  --motion-thresh 2.0 \
+  --record /Users/rededge/Documents/workspace/CV-proj-2026/outputs/aravis_live_demo.mp4 \
+  --max-frames 480 \
+  --headless" with administrator privileges'
 ```
 
----
-
-## ⚙️ 参数说明
-
-### 📷 摄像头参数
-
-| 参数 | 默认值 | 说明 |
-|:---|:---|:---|
-| `--source` | `"0"` | 摄像头源：`0`=USB, `realsense`=T265, 路径=视频文件 |
-| `--width` / `--height` | `848×800` | RealSense 输出分辨率 |
-| `--resize-input` | `False` | 是否将输入缩放到 720p 以内 |
-| `--input-max-width/height` | `1280×720` | 缩放目标分辨率 |
-
-### 🤖 YOLO 参数
-
-| 参数 | 默认值 | 说明 |
-|:---|:---|:---|
-| `--use-yolo` | `False` | 启用 YOLO 检测 |
-| `--device` | `"cpu"` | 推理设备：`cpu`/`mps`/`cuda` |
-| `--yolo-model` | `"yolo11n.pt"` | 模型路径，支持 `.pt`/`.mlpackage`/`.rknn` |
-| `--conf-thresh` | `0.25` | 检测置信度阈值 (ROI 内) |
-| `--bg-conf` | `0.45` | 背景区域置信度阈值 |
-| `--yolo-nms-iou` | `0.45` | NMS IoU 阈值 |
-
-### 🔍 运动检测参数
-
-| 参数 | 默认值 | 说明 |
-|:---|:---|:---|
-| `--motion-method` | `"lk"` | 运动检测方法：`lk`=光流, `diff`=帧差 |
-| `--motion-thresh` | `2.0` | 运动幅值阈值 (像素/帧) |
-| `--num-motion-points` | `128` | 固定网格点数：`64`/`128`/`256` |
-| `--blur-ksize` | `21` | 注意力模糊核大小 (奇数) |
-
-### 🎮 云台参数
-
-| 参数 | 默认值 | 说明 |
-|:---|:---|:---|
-| `--mock-gimbal` | `False` | 启用云台模拟模式 (无硬件) |
-| `--can-channel` | `"PCAN_USBBUS1"` | CAN 通道名 (Mac) 或 `can0` (Linux) |
-| `--h-fov` / `--v-fov` | `45.0` / `30.0` | 摄像头水平/垂直视场角 (°) |
-
-### 📦 输出参数
-
-| 参数 | 默认值 | 说明 |
-|:---|:---|:---|
-| `--record` | `True` | 启用视频录制 |
-| `--output` | `"outputs/motion_guided_yolo.mp4"` | 输出路径 |
-| `--no-timestamp` | `False` | 禁用文件名时间戳 |
-| `--record-fps` | `30.0` | 录制帧率 |
-
----
-
-## 🎮 云台控制集成
-
-### 电机协议说明 (HTDW-5047-36-NE)
-
-```python
-# 控制帧格式 (8 bytes, Extended ID)
-# ID: 0x8000 | motor_id (e.g., 0x8001=Yaw, 0x8002=Pitch)
-# Data:
-#   [0:2]  = 0x07, 0x35          # 命令头
-#   [2:4]  = speed_raw (int16)   # 速度 = RPM / 0.015
-#   [4:6]  = torque_raw (int16)  # 力矩限制 (推荐 2000)
-#   [6:8]  = pos_raw (uint16)    # 位置占位 (0x8000)
-
-# 反馈帧解析 (ID: 0x8000|id, Data[0]==0x27)
-#   Data[4:6] = vel_raw (int16)  # 实际速度 = raw × 0.00025 × 60 RPM
-```
-
-### 独立测试电机
+如果你想显式绑定序列号，也可以附加：
 
 ```bash
-# 运行独立控制脚本 (键盘控制)
-python src/htdw_motor_ctrl.py
-
-# 按键说明：
-#   E = 使能电机 | W/S = 加速/减速 | 空格 = 归零
-#   D = 停止 | B = 刹车 | Q = 退出
+--serial DB0178676
 ```
 
-### 集成到主程序
+这条路径已经在本机生成了：
 
-`gimbal_controller.py` 已封装双轴控制，主程序自动调用：
-
-```python
-# 初始化
-mapper = CameraAngleMapper(h_fov=45.0, v_fov=30.0, img_w=1280, img_h=720)
-gimbal = GimbalController(channel="PCAN_USBBUS1", mock=False)
-
-# 每帧跟踪逻辑
-if detections:
-    # 选择最大目标
-    largest = max(detections, key=lambda d: (d["bbox"][2]-d["bbox"][0])*(d["bbox"][3]-d["bbox"][1]))
-    cx, cy = (largest["bbox"][0]+largest["bbox"][2])/2, (largest["bbox"][1]+largest["bbox"][3])/2
-    
-    # 像素→角度
-    yaw_off, pitch_off = mapper.pixel_to_angle(cx, cy)
-    
-    # 云台目标 = 当前角度 + 偏差
-    gimbal.set_target_angles(
-        gimbal.current_yaw + yaw_off,
-        gimbal.current_pitch + pitch_off
-    )
-    
-    # 更新控制环 (50Hz)
-    gimbal.update(dt=0.02)
+```text
+outputs/aravis_live_demo.mp4
 ```
 
-### 安全保护
+文件规格为：
 
-- ✅ **软限位**：`±20° Yaw / ±15° Pitch` (代码内)
-- ✅ **急停指令**：按 `q` 或 `Ctrl+C` 自动发送 `0x01,0x00,0x00`
-- ✅ **力矩限制**：默认 `2000` (约 60% 最大扭矩)，防堵转
-- ⚠️ **激光安全**：建议添加头部/眼部区域屏蔽逻辑（见 `yolo_detector.py`）
+- `960x540`
+- `240fps`
+- `480 frames`
+- 时长 `2s`
 
----
+### 3.5 通过 MVS 走控制主路径
 
-## 🧪 测试与调试
-
-### 1️⃣ 摄像头测试
+一旦本机装好了 `MVS SDK`，推荐把实时链路切到：
 
 ```bash
-# 查看可用摄像头
-python -c "import cv2; [print(f'Camera {i}:', cv2.VideoCapture(i).isOpened()) for i in range(4)]"
-
-# 测试分辨率/帧率
-python -c "
-import cv2
-cap = cv2.VideoCapture(0)
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-cap.set(cv2.CAP_PROP_FPS, 30)
-print(f'Resolution: {cap.get(3)}x{cap.get(4)} @ {cap.get(5)} FPS')
-"
+./build/cpp/cvproj_capture \
+  --backend hikrobot \
+  --serial DB0178676 \
+  --width 960 \
+  --height 540 \
+  --fps 240 \
+  --exposure-us 3000 \
+  --gain-db 12 \
+  --target-luma 96 \
+  --max-post-gain 6 \
+  --gamma 0.8 \
+  --pixel-format Mono8 \
+  --grid-points 128 \
+  --motion-thresh 2.0 \
+  --livestream \
+  --telemetry outputs/hikrobot_livestream_targets.csv \
+  --headless
 ```
 
-### 2️⃣ FOV 标定
+这条命令的定位是：
+
+- 不保存视频
+- 只输出结构化目标数据
+- 给后续电机控制预留稳定接口
+
+### 3.1 直接录制真机实时推理 demo
+
+如果管理员态下 `Aravis` 的 USB bootstrap 正常，这条命令会在真机采集的同一次运行里，直接输出带推理框的视频：
 
 ```bash
-# 1. 在 5m 处放置 2.68m 宽标尺 (对应 30°理论覆盖)
-# 2. 拍摄图像并运行标定脚本
-python tools/calibrate_fov.py --image test.jpg --distance 5.0 --known-width 2.68
+cp src/yolo11n.onnx /tmp/cvproj_yolo11n.onnx
 
-# 输出示例：
-# 📐 Measured HFOV: 44.8° (target: 45°)
-# ✅ FOV within tolerance (±2°)
+osascript -e 'do shell script "\
+/Users/rededge/Documents/workspace/CV-proj-2026/build/cpp/cvproj_capture \
+  --backend aravis \
+  --serial DB0178676 \
+  --width 960 \
+  --height 540 \
+  --fps 240 \
+  --exposure-us 3000 \
+  --gain-db 12 \
+  --target-luma 96 \
+  --max-post-gain 6 \
+  --gamma 0.8 \
+  --pixel-format Mono8 \
+  --grid-points 128 \
+  --motion-thresh 2.0 \
+  --detector yolo \
+  --model /tmp/cvproj_yolo11n.onnx \
+  --detect-interval 8 \
+  --det-conf 0.25 \
+  --record /Users/rededge/Documents/workspace/CV-proj-2026/outputs/aravis_live_yolo_direct.mp4 \
+  --max-frames 240 \
+  --headless" with administrator privileges'
 ```
 
-### 3️⃣ 延迟测试
+说明：
+
+- 这里把模型先复制到 `/tmp`，是为了避免管理员子进程读取 `Documents/` 下 ONNX 文件时遇到权限问题
+- `detect-interval=8` 的目的是把 `YOLO` 保持在低频支路，不和 `240fps` 的采集热路径硬绑定
+
+### 3.2 基于真实相机帧生成推理 demo
+
+在本机当前状态下，更稳定的方式是分两步：
+
+1. 先用上一节命令录制真机处理视频
+2. 再对这段真实相机视频做 C++ 推理回放
+
+命令如下：
 
 ```bash
-# 测量端到端延迟 (摄像头→检测→云台指令)
-python tools/latency_test.py \
-  --video test.mp4 \
-  --model models/yolo11n.mlpackage \
-  --mock-gimbal
-
-# 输出：
-# 📊 End-to-end latency: 82.3 ± 5.1 ms (P95: 91ms)
+./build/cpp/cvproj_capture \
+  --backend opencv \
+  --source outputs/aravis_live_demo.mp4 \
+  --fps 120 \
+  --grid-points 128 \
+  --motion-thresh 2.0 \
+  --detector yolo \
+  --model src/yolo11n.onnx \
+  --detect-interval 6 \
+  --det-conf 0.25 \
+  --record outputs/aravis_live_yolo_demo_v2.mp4 \
+  --max-frames 240 \
+  --headless
 ```
 
-### 4️⃣ 性能基准
+仓库当前已经生成：
+
+```text
+outputs/aravis_live_yolo_demo_v2.mp4
+```
+
+这个文件基于同机同相机刚录下来的真实帧，输出规格为：
+
+- `960x540`
+- `120fps`
+- `240 frames`
+- 时长 `2s`
+
+## 参数说明
+
+- `--backend`: `opencv`、`aravis` 或 `hikrobot`
+- `--source`: OpenCV 相机索引或视频路径
+- `--serial`: 相机序列号过滤，当前真机为 `DB0178676`
+- `--width`, `--height`: 采集分辨率
+- `--fps`: 目标采集帧率
+- `--exposure-us`: 曝光时间，单位微秒
+- `--gain-db`: 相机侧增益，优先用于改善真机低照度画面
+- `--pixel-format`: 相机像素格式，标准协议路径推荐 `Mono8`
+- `--target-luma`: 软件侧目标亮度，默认 `96`
+- `--max-post-gain`: 软件侧最大亮度放大倍数，默认 `6`
+- `--gamma`: 软件侧 gamma，默认 `0.8`，用于提亮暗部
+- `--no-auto-brightness`: 关闭软件自动提亮
+- `--grid-points`: 固定网格光流点数，推荐 `64 / 128 / 256`
+- `--motion-thresh`: 运动判定阈值，单位像素/帧
+- `--detector`: `none` 或 `yolo`
+- `--model`: ONNX 模型路径，当前已提供 `src/yolo11n.onnx`
+- `--det-conf`: 检测置信度阈值
+- `--det-nms`: NMS 阈值
+- `--detect-interval`: 每隔多少帧跑一次检测，建议高帧率模式下取 `4~8`
+- `--record`: 保存处理后视频
+- `--record-fps`: 输出视频 fps；如果不指定，默认沿用 `--fps`
+- `--telemetry`: 目标遥测输出 csv 路径
+- `--livestream`: 直播模式，不保存视频，只输出结构化目标信息
+- `--max-frames`: 跑多少帧后退出，便于 benchmark
+- `--headless`: 不打开窗口，专门用于录制和压测
+
+## 处理帧率与录制帧率
+
+当前主循环已经把“处理节奏”和“录制节奏”分开：
+
+- 相机侧 `--fps` 只表示采集目标帧率
+- 录制侧 `--record-fps` 只表示输出视频的封装帧率
+- 实际处理时，程序每轮都会优先取“当前能拿到的最新帧”，而不是强制把积压帧逐张处理完
+
+这意味着：
+
+- 如果处理链比相机慢，程序会自动跳过旧帧，尽量让输出结果跟上最新画面
+- 如果需要拿目标框中心、ROI、检测数量等参数做后续控制或分析，应该使用录制视频同名 `.csv` sidecar，而不是假设它一定等间隔对应 `--fps`
+
+当你传入：
 
 ```bash
-# 对比不同模型/分辨率的推理速度
-python tools/benchmark.py \
-  --video outputs/test.mp4 \
-  --models yolo11n.pt yolo11n.mlpackage \
-  --devices cpu mps \
-  --frames 100
+--record outputs/demo.mp4
 ```
 
----
+程序会同时生成：
 
-## 🔍 故障排查
+```text
+outputs/demo.csv
+```
 
-### ❌ 摄像头无法打开
+其中每一行都对应一帧真实处理结果，包含：
+
+- `source_timestamp_s`
+- `source_delta_ms`
+- `effective_fps`
+- `pipeline_fps`
+- `loop_fps`
+- `processing_ms`
+- `roi`
+- `target_box`
+- `target_cx`
+- `target_cy`
+- `detection_count`
+
+所以后续如果要做控制闭环、时序回放、性能分析，应该以 `.csv` 中的真实时间和真实处理频率为准。
+
+## Livestream 模式
+
+如果你要给后续电机控制预留接口，推荐直接使用 `livestream` 模式：
+
+- 不保存 mp4
+- 继续跑实时采集、运动处理、可选检测与目标跟踪
+- 每帧输出结构化目标信息到 `csv`
+
+示例：
 
 ```bash
-# 1. 检查设备权限 (macOS)
-#    系统设置 → 隐私与安全性 → 摄像头 → 允许终端/Python
-
-# 2. 检查设备节点 (Linux)
-ls -l /dev/video*
-sudo chmod 666 /dev/video0  # 临时权限
-
-# 3. 尝试不同源
-python main.py --source 1  # 尝试第二个摄像头
-python main.py --source realsense  # 尝试 T265
+osascript -e 'do shell script "\
+/Users/rededge/Documents/workspace/CV-proj-2026/build/cpp/cvproj_capture \
+  --backend aravis \
+  --serial DB0178676 \
+  --width 960 \
+  --height 540 \
+  --fps 240 \
+  --exposure-us 3000 \
+  --gain-db 12 \
+  --target-luma 96 \
+  --max-post-gain 6 \
+  --gamma 0.8 \
+  --pixel-format Mono8 \
+  --grid-points 128 \
+  --motion-thresh 2.0 \
+  --detector yolo \
+  --model /tmp/cvproj_yolo11n.onnx \
+  --detect-interval 8 \
+  --livestream \
+  --telemetry /Users/rededge/Documents/workspace/CV-proj-2026/outputs/livestream_targets.csv \
+  --headless" with administrator privileges'
 ```
 
-### ❌ CAN 通信失败
+如果不加 `--telemetry`，默认会写到：
 
-```bash
-# 1. 检查驱动 (macOS)
-system_profiler SPUSBDataType | grep -i pcan
-# 若无输出：安装 PEAK-System macOS 驱动
-
-# 2. 检查通道名
-python -c "import can; print(can.list_interfaces(bustype='pcan'))"
-# 输出示例：['PCAN_USBBUS1', 'PCAN_USBBUS2']
-
-# 3. 检查比特率
-# 确保与电机固件一致 (默认 1Mbps)
-python main.py --can-channel PCAN_USBBUS1 --can-bitrate 1000000
+```text
+outputs/livestream_targets.csv
 ```
 
-### ❌ YOLO 推理慢/崩溃
+### 遥测字段
 
-```bash
-# 1. 检查设备
-python -c "import torch; print('MPS:', torch.backends.mps.is_available())"
+`livestream` 输出按“每帧每目标一行”记录，主要字段包括：
 
-# 2. 尝试不同模型格式
-#    .pt (PyTorch) → .mlpackage (CoreML, Mac 加速) → .rknn (RK3588)
+- `track_id`: 跨帧稳定目标编号，适合后续控制环使用
+- `target_index`: 当前帧内的目标顺序，`0` 一般表示主目标
+- `is_primary`: 是否主目标
+- `source`: 目标来源，当前可能是 `detector` 或 `motion`
+- `x,y,w,h`: 像素坐标框
+- `cx,cy`: 目标中心点像素坐标
+- `norm_cx,norm_cy`: 归一化中心坐标，范围约 `0~1`
+- `offset_x,offset_y`: 相对图像中心的像素偏差，后续电机控制通常直接用这两个量
+- `source_timestamp_s`: 本帧真实时间戳
+- `source_delta_ms`: 与上一处理帧之间的真实时间间隔
+- `effective_fps`: 实际处理帧率估计
 
-# 3. 降低分辨率
-python main.py --resize-input --input-max-width 640 --input-max-height 360
+如果某一帧没有可用目标，程序仍然会写一行空目标记录，`track_id=-1`，这样后续控制逻辑可以明确区分“无目标”而不是“丢日志”。
 
-# 4. 启用量化 (RK3588)
-yolo export model=yolo11n.pt format=rknn imgsz=640 data=coco.yaml
-```
+## 低照度画质建议
 
-### ❌ 云台不动/抖动
+如果真机画面明显偏黑，不要第一反应只拉长曝光，因为在 `240fps` 附近曝光时间很快会吃掉可用帧率。当前推荐按这个顺序调：
 
-```bash
-# 1. 检查电机使能
-#    运行 htdw_motor_ctrl.py，按 E 使能，观察是否响应
+1. 先保持 `--exposure-us 3000`
+2. 把 `--gain-db` 提到 `12` 或 `15`
+3. 保持软件增强开启，也就是不要加 `--no-auto-brightness`
+4. 如果画面还是偏暗，再把 `--target-luma` 从 `96` 提到 `110`
+5. 只有在确实需要时，才把曝光继续往 `3500~3800us` 拉
 
-# 2. 检查控制环频率
-#    确保 main.py 中 gimbal.update(dt=0.02) 与帧率匹配
+当前主程序默认已经会对输入图像做一层轻量增强：
 
-# 3. 调整 PID 参数 (gimbal_controller.py)
-#    Kp↑ = 响应快但易振荡 | Ki↑ = 消除静差但易超调 | Kd↑ = 抑制振荡
+- 相机侧增益
+- CLAHE 局部对比度增强
+- 自动亮度拉升
+- gamma 提亮暗部
 
-# 4. 检查机械背隙
-#    手动转动云台，感受是否有空程；如有，需软件补偿或机械预紧
-```
+这层增强会同时作用于可视化、录像和后续运动处理，因此比“只在显示端提亮”更适合当前项目。
 
----
+## 当前 C++ 处理链
 
-## 🛠️ 开发指南
+当前主程序每帧执行：
 
-### 添加新运动检测方法
+1. 采集一帧 BGR 图像
+2. 生成或复用固定网格光流点
+3. 用 `calcOpticalFlowPyrLK` 计算前后帧光流
+4. 用全局中值流做一次图像级背景运动抵消
+5. 得到残余运动强度
+6. 用滑窗方式生成 ROI
+7. 用运动点热区生成 blob，并取最大运动目标框
+8. 可选地在 ROI 上跑低频 `YOLO ONNX` 人体检测
+9. 叠加 ROI、目标框、检测框、FPS、处理时延
+10. 可选写入 mp4
 
-```python
-# 1. 在 MotionDetectionPipeline._compute_motion_intent 中添加分支
-if self.motion_method == "your_method":
-    # 实现你的算法
-    return magnitudes_array
+这条链路是为了满足高 FPS 主路径，不包含：
 
-# 2. 在 parse_args() 中添加选项
-p.add_argument("--motion-method", choices=["lk", "diff", "your_method"], default="lk")
-```
+- T265 VIO
+- 陀螺仪参与的光流补偿
+- 云台控制
 
-### 支持新电机协议
+当前唯一仍未迁完的是云台控制和陀螺仪/VIO 相关补偿。检测器已经有了 C++ 可选支路，但默认不放在 240fps 热路径中。
 
-```python
-# 1. 修改 gimbal_controller.py 中的 _pack_and_send()
-def _pack_and_send(self, can_id: int, value: float):
-    # 根据你的协议重新打包数据
-    data = your_protocol_encode(value)
-    self._send_can_frame(can_id, data)
+## 真机实测
 
-# 2. 更新 HTDWMotor 类的 send_control_frame()
-```
+下面这些数据都来自这台 MacBook Air M4 上对 `MV-CS016-10UC` 的实测：
 
-### 添加新可视化面板
+| 模式 | 分辨率 | 曝光 | 目标 FPS | 实测结果 |
+|---|---:|---:|---:|---|
+| `arv-camera-test` | `1440x1080` | `5000us` | `165` | `164~166 fps`, `0` 失败 |
+| `arv-camera-test` | `1280x720` | `5000us` | `240` | `193~194 fps`, `0` 失败 |
+| `arv-camera-test` | `960x540` | `3000us` | `240` | `240~241 fps` 可达 |
+| `cvproj_capture` 真机处理 | `960x540` | `3000us` | `240` | 端到端录制成功，主链末次 `355.5 fps` |
 
-```python
-# 1. 在 _draw_results() 中调用新函数
-self._draw_your_panel(vis_frame, results)
+说明：
 
-# 2. 实现绘制逻辑
-def _draw_your_panel(self, vis_frame, results):
-    # 使用 cv2.putText/rectangle 等绘制
-    pass
-```
+- `5000us` 曝光会把可达帧率压到 `200fps` 左右
+- 把曝光降到 `3000us` 后，`960x540` 配置可达到 `240fps`
+- 真机 `YOLO` 推理支路不建议直接跟 `240fps` 热路径绑定，建议低频触发
 
-### 模型量化部署 (RK3588)
+## 240 FPS 调优建议
 
-```bash
-# 1. 导出 ONNX
-yolo export model=yolo11n.pt format=onnx imgsz=640
+想逼近 `240fps`，建议优先按这个顺序调：
 
-# 2. RKNN 量化
-rknn-toolkit2 \
-  --model yolo11n.onnx \
-  --dataset calib_set.txt \
-  --quantization RKNN_INT8 \
-  --output yolo11n_int8.rknn
+1. 先用 `--headless` 压测，不要显示窗口
+2. 先只录制短片段，避免长时间磁盘 IO 影响统计
+3. 优先使用 `64` 或 `128` 个光流点
+4. 保持单色或低复杂度像素格式，减少 SDK 转色成本
+5. 必要时把相机输出裁到业务真正需要的分辨率
+6. 把后续检测器留在低频支路，而不是放在每帧热路径
 
-# 3. 修改 yolo_detector.py 加载逻辑
-if model_path.endswith('.rknn'):
-    from rknnlite.api import RKNNLite
-    self.rknn = RKNNLite()
-    self.rknn.load_rknn(model_path)
-    self.rknn.init_runtime(core_mask=RKNNLite.NPU_CORE_0)
-```
+## 已知限制
 
----
+- 当前仓库里还没有海康 MVS SDK，本机首次构建时如果没装 SDK，会自动退化成 OpenCV 路径
+- 当前路线已经不依赖海康 MVS SDK，真机主链走的是 `Aravis` 标准协议
+- macOS `2026-05-22` 下普通用户态对 USB3 Vision streaming interface 的访问不稳定，因此当前 README 默认用 `osascript ... with administrator privileges` 启动真机采集
+- macOS `2026-05-22` 下管理员态的 `Aravis/libusb` 也偶发 `Failed to bootstrap USB device '---'`，所以“真机采集 + 在线推理”目前不是每次都能一次成功
+- 当前 C++ 主链已经迁移了“高帧率运动处理 + 可选 YOLO ONNX 检测”部分，但没有把 Python 里的云台逻辑一比一移植
+- 管理员会话下 `Aravis` 的设备枚举名称偶尔不稳定，因此最稳妥的真机录制方式是一次授权后直接起程序并写视频
 
-## 📄 许可证
+## 建议的验证顺序
 
-本项目采用 **MIT License**，允许商业使用、修改和分发，但需保留原作者声明。
+1. `brew install opencv aravis`
+2. 构建 `cvproj_capture`
+3. 先用已有 mp4 跑回放并生成处理视频
+4. 用 `osascript + --backend aravis` 接真机
+5. 先验证 `1440x1080 @ 165fps`
+6. 再切到 `960x540 + 3000us + 240fps`
+7. 最后再决定是否把云台闭环补回 C++ 主链
 
-```
-Copyright © 2026 [Your Name/Organization]
+## Legacy Python
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+`src/` 目录下的 Python 代码暂时保留，原因是：
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-```
+- 它仍然是旧实验流程的参考实现
+- 里面的 YOLO、RealSense、云台逻辑对后续 C++ 补完功能有参考价值
+- 在 C++ 真机链路完全稳定前，保留旧版有助于对比结果
 
----
+如果你后面要继续推进，我建议下一阶段直接做两件事：
 
-> 💡 **最后提示**：  
-> 1. **先软件后硬件**：先用 `--mock-gimbal` 调通视觉逻辑，再接真实云台  
-> 2. **安全第一**：激光指向人体时务必添加头部/眼部屏蔽逻辑  
-> 3. **标定先行**：实测摄像头 FOV 和云台零位，避免角度映射误差  
-> 4. **渐进优化**：先跑通 64 点 + yolo11n，再逐步增加点数/更换模型  
-
-如有问题，请提交 Issue 或联系维护者。🚀
+1. 把海康真机的曝光、像素格式、帧率配置做成可配置 profile
+2. 把云台控制链也迁到 C++

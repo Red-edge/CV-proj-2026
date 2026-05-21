@@ -1,5 +1,17 @@
-(project_docs/README_MACOS.md, project_docs/requirements.txt, project_docs/system_design.md, src/main.py are all source/config files - no build artifacts, dependencies, or temp files present)
+# Build artifacts
+build/
+cmake-build-*/
+compile_commands.json
 
-```python
+# IDE / OS noise
+.DS_Store
+.vscode/
 
-```
+# Python caches
+__pycache__/
+*.pyc
+
+# Runtime outputs
+outputs/
+cpp_outputs/
+*.log

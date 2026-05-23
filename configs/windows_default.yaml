@@ -1,0 +1,35 @@
+%YAML:1.0
+---
+source: "mvs"
+backend: "cuda"
+model_onnx: "src/yolo11n.onnx"
+model_rknn: "models/rknn/yolo11n.rknn"
+output_dir: "outputs"
+output_prefix: "central_control_win"
+target_fps: 100
+duration_sec: 30
+input_width: 1280
+input_height: 720
+yolo_input_size: 640
+motion_points: 128
+blur_kernel: 21
+motion_threshold: 2.0
+roi_conf_threshold: 0.25
+bg_conf_threshold: 0.45
+nms_iou: 0.45
+mvs_index: 0
+mvs_exposure_us: -1.
+mvs_gain: -1.
+mvs_frame_rate: 100.
+headless: 0
+record_rendered: 0
+mock_gimbal: 1
+use_yolo: 1
+window_name: "Central Control"
+can_channel: "PCAN_USBBUS1"
+h_fov: 45.
+v_fov: 34.
+yaw_zero: 0.
+pitch_zero: 0.
+yaw_rpm_per_deg: 25.
+pitch_rpm_per_deg: 25.

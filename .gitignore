@@ -1,5 +1,15 @@
-(project_docs/README_MACOS.md, project_docs/requirements.txt, project_docs/system_design.md, src/main.py are all source/config files - no build artifacts, dependencies, or temp files present)
-
-```python
-
-```
+.venv/
+build/
+out/
+outputs/
+*.obj
+*.o
+*.pdb
+*.ilk
+*.idb
+*.suo
+*.user
+*.vcxproj.user
+*.sln.docstates
+__pycache__/
+*.pyc

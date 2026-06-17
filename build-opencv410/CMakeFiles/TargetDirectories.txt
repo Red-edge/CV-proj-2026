@@ -1,0 +1,5 @@
+/home/rededge/workspace/CV-proj-2026/build-opencv410/CMakeFiles/edit_cache.dir
+/home/rededge/workspace/CV-proj-2026/build-opencv410/CMakeFiles/rebuild_cache.dir
+/home/rededge/workspace/CV-proj-2026/build-opencv410/cpp/CMakeFiles/cvproj_capture.dir
+/home/rededge/workspace/CV-proj-2026/build-opencv410/cpp/CMakeFiles/edit_cache.dir
+/home/rededge/workspace/CV-proj-2026/build-opencv410/cpp/CMakeFiles/rebuild_cache.dir

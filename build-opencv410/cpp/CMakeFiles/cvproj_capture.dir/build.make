@@ -83,10 +83,24 @@ cpp/CMakeFiles/cvproj_capture.dir/src/aravis_frame_source.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/cvproj_capture.dir/src/aravis_frame_source.cpp.s"
 	cd /home/rededge/workspace/CV-proj-2026/build-opencv410/cpp && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/rededge/workspace/CV-proj-2026/cpp/src/aravis_frame_source.cpp -o CMakeFiles/cvproj_capture.dir/src/aravis_frame_source.cpp.s
 
+cpp/CMakeFiles/cvproj_capture.dir/src/bytetrack_tracker.cpp.o: cpp/CMakeFiles/cvproj_capture.dir/flags.make
+cpp/CMakeFiles/cvproj_capture.dir/src/bytetrack_tracker.cpp.o: /home/rededge/workspace/CV-proj-2026/cpp/src/bytetrack_tracker.cpp
+cpp/CMakeFiles/cvproj_capture.dir/src/bytetrack_tracker.cpp.o: cpp/CMakeFiles/cvproj_capture.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/rededge/workspace/CV-proj-2026/build-opencv410/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object cpp/CMakeFiles/cvproj_capture.dir/src/bytetrack_tracker.cpp.o"
+	cd /home/rededge/workspace/CV-proj-2026/build-opencv410/cpp && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT cpp/CMakeFiles/cvproj_capture.dir/src/bytetrack_tracker.cpp.o -MF CMakeFiles/cvproj_capture.dir/src/bytetrack_tracker.cpp.o.d -o CMakeFiles/cvproj_capture.dir/src/bytetrack_tracker.cpp.o -c /home/rededge/workspace/CV-proj-2026/cpp/src/bytetrack_tracker.cpp
+
+cpp/CMakeFiles/cvproj_capture.dir/src/bytetrack_tracker.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/cvproj_capture.dir/src/bytetrack_tracker.cpp.i"
+	cd /home/rededge/workspace/CV-proj-2026/build-opencv410/cpp && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/rededge/workspace/CV-proj-2026/cpp/src/bytetrack_tracker.cpp > CMakeFiles/cvproj_capture.dir/src/bytetrack_tracker.cpp.i
+
+cpp/CMakeFiles/cvproj_capture.dir/src/bytetrack_tracker.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/cvproj_capture.dir/src/bytetrack_tracker.cpp.s"
+	cd /home/rededge/workspace/CV-proj-2026/build-opencv410/cpp && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/rededge/workspace/CV-proj-2026/cpp/src/bytetrack_tracker.cpp -o CMakeFiles/cvproj_capture.dir/src/bytetrack_tracker.cpp.s
+
 cpp/CMakeFiles/cvproj_capture.dir/src/main.cpp.o: cpp/CMakeFiles/cvproj_capture.dir/flags.make
 cpp/CMakeFiles/cvproj_capture.dir/src/main.cpp.o: /home/rededge/workspace/CV-proj-2026/cpp/src/main.cpp
 cpp/CMakeFiles/cvproj_capture.dir/src/main.cpp.o: cpp/CMakeFiles/cvproj_capture.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/rededge/workspace/CV-proj-2026/build-opencv410/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object cpp/CMakeFiles/cvproj_capture.dir/src/main.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/rededge/workspace/CV-proj-2026/build-opencv410/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object cpp/CMakeFiles/cvproj_capture.dir/src/main.cpp.o"
 	cd /home/rededge/workspace/CV-proj-2026/build-opencv410/cpp && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT cpp/CMakeFiles/cvproj_capture.dir/src/main.cpp.o -MF CMakeFiles/cvproj_capture.dir/src/main.cpp.o.d -o CMakeFiles/cvproj_capture.dir/src/main.cpp.o -c /home/rededge/workspace/CV-proj-2026/cpp/src/main.cpp
 
 cpp/CMakeFiles/cvproj_capture.dir/src/main.cpp.i: cmake_force
@@ -100,7 +114,7 @@ cpp/CMakeFiles/cvproj_capture.dir/src/main.cpp.s: cmake_force
 cpp/CMakeFiles/cvproj_capture.dir/src/motion_pipeline.cpp.o: cpp/CMakeFiles/cvproj_capture.dir/flags.make
 cpp/CMakeFiles/cvproj_capture.dir/src/motion_pipeline.cpp.o: /home/rededge/workspace/CV-proj-2026/cpp/src/motion_pipeline.cpp
 cpp/CMakeFiles/cvproj_capture.dir/src/motion_pipeline.cpp.o: cpp/CMakeFiles/cvproj_capture.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/rededge/workspace/CV-proj-2026/build-opencv410/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object cpp/CMakeFiles/cvproj_capture.dir/src/motion_pipeline.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/rededge/workspace/CV-proj-2026/build-opencv410/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object cpp/CMakeFiles/cvproj_capture.dir/src/motion_pipeline.cpp.o"
 	cd /home/rededge/workspace/CV-proj-2026/build-opencv410/cpp && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT cpp/CMakeFiles/cvproj_capture.dir/src/motion_pipeline.cpp.o -MF CMakeFiles/cvproj_capture.dir/src/motion_pipeline.cpp.o.d -o CMakeFiles/cvproj_capture.dir/src/motion_pipeline.cpp.o -c /home/rededge/workspace/CV-proj-2026/cpp/src/motion_pipeline.cpp
 
 cpp/CMakeFiles/cvproj_capture.dir/src/motion_pipeline.cpp.i: cmake_force
@@ -114,7 +128,7 @@ cpp/CMakeFiles/cvproj_capture.dir/src/motion_pipeline.cpp.s: cmake_force
 cpp/CMakeFiles/cvproj_capture.dir/src/opencv_video_source.cpp.o: cpp/CMakeFiles/cvproj_capture.dir/flags.make
 cpp/CMakeFiles/cvproj_capture.dir/src/opencv_video_source.cpp.o: /home/rededge/workspace/CV-proj-2026/cpp/src/opencv_video_source.cpp
 cpp/CMakeFiles/cvproj_capture.dir/src/opencv_video_source.cpp.o: cpp/CMakeFiles/cvproj_capture.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/rededge/workspace/CV-proj-2026/build-opencv410/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object cpp/CMakeFiles/cvproj_capture.dir/src/opencv_video_source.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/rededge/workspace/CV-proj-2026/build-opencv410/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object cpp/CMakeFiles/cvproj_capture.dir/src/opencv_video_source.cpp.o"
 	cd /home/rededge/workspace/CV-proj-2026/build-opencv410/cpp && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT cpp/CMakeFiles/cvproj_capture.dir/src/opencv_video_source.cpp.o -MF CMakeFiles/cvproj_capture.dir/src/opencv_video_source.cpp.o.d -o CMakeFiles/cvproj_capture.dir/src/opencv_video_source.cpp.o -c /home/rededge/workspace/CV-proj-2026/cpp/src/opencv_video_source.cpp
 
 cpp/CMakeFiles/cvproj_capture.dir/src/opencv_video_source.cpp.i: cmake_force
@@ -128,7 +142,7 @@ cpp/CMakeFiles/cvproj_capture.dir/src/opencv_video_source.cpp.s: cmake_force
 cpp/CMakeFiles/cvproj_capture.dir/src/hikrobot_mvs_source.cpp.o: cpp/CMakeFiles/cvproj_capture.dir/flags.make
 cpp/CMakeFiles/cvproj_capture.dir/src/hikrobot_mvs_source.cpp.o: /home/rededge/workspace/CV-proj-2026/cpp/src/hikrobot_mvs_source.cpp
 cpp/CMakeFiles/cvproj_capture.dir/src/hikrobot_mvs_source.cpp.o: cpp/CMakeFiles/cvproj_capture.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/rededge/workspace/CV-proj-2026/build-opencv410/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object cpp/CMakeFiles/cvproj_capture.dir/src/hikrobot_mvs_source.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/rededge/workspace/CV-proj-2026/build-opencv410/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object cpp/CMakeFiles/cvproj_capture.dir/src/hikrobot_mvs_source.cpp.o"
 	cd /home/rededge/workspace/CV-proj-2026/build-opencv410/cpp && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT cpp/CMakeFiles/cvproj_capture.dir/src/hikrobot_mvs_source.cpp.o -MF CMakeFiles/cvproj_capture.dir/src/hikrobot_mvs_source.cpp.o.d -o CMakeFiles/cvproj_capture.dir/src/hikrobot_mvs_source.cpp.o -c /home/rededge/workspace/CV-proj-2026/cpp/src/hikrobot_mvs_source.cpp
 
 cpp/CMakeFiles/cvproj_capture.dir/src/hikrobot_mvs_source.cpp.i: cmake_force
@@ -142,7 +156,7 @@ cpp/CMakeFiles/cvproj_capture.dir/src/hikrobot_mvs_source.cpp.s: cmake_force
 cpp/CMakeFiles/cvproj_capture.dir/src/mjpeg_server.cpp.o: cpp/CMakeFiles/cvproj_capture.dir/flags.make
 cpp/CMakeFiles/cvproj_capture.dir/src/mjpeg_server.cpp.o: /home/rededge/workspace/CV-proj-2026/cpp/src/mjpeg_server.cpp
 cpp/CMakeFiles/cvproj_capture.dir/src/mjpeg_server.cpp.o: cpp/CMakeFiles/cvproj_capture.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/rededge/workspace/CV-proj-2026/build-opencv410/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object cpp/CMakeFiles/cvproj_capture.dir/src/mjpeg_server.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/rededge/workspace/CV-proj-2026/build-opencv410/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object cpp/CMakeFiles/cvproj_capture.dir/src/mjpeg_server.cpp.o"
 	cd /home/rededge/workspace/CV-proj-2026/build-opencv410/cpp && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT cpp/CMakeFiles/cvproj_capture.dir/src/mjpeg_server.cpp.o -MF CMakeFiles/cvproj_capture.dir/src/mjpeg_server.cpp.o.d -o CMakeFiles/cvproj_capture.dir/src/mjpeg_server.cpp.o -c /home/rededge/workspace/CV-proj-2026/cpp/src/mjpeg_server.cpp
 
 cpp/CMakeFiles/cvproj_capture.dir/src/mjpeg_server.cpp.i: cmake_force
@@ -156,7 +170,7 @@ cpp/CMakeFiles/cvproj_capture.dir/src/mjpeg_server.cpp.s: cmake_force
 cpp/CMakeFiles/cvproj_capture.dir/src/yolo_onnx_detector.cpp.o: cpp/CMakeFiles/cvproj_capture.dir/flags.make
 cpp/CMakeFiles/cvproj_capture.dir/src/yolo_onnx_detector.cpp.o: /home/rededge/workspace/CV-proj-2026/cpp/src/yolo_onnx_detector.cpp
 cpp/CMakeFiles/cvproj_capture.dir/src/yolo_onnx_detector.cpp.o: cpp/CMakeFiles/cvproj_capture.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/rededge/workspace/CV-proj-2026/build-opencv410/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object cpp/CMakeFiles/cvproj_capture.dir/src/yolo_onnx_detector.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/rededge/workspace/CV-proj-2026/build-opencv410/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object cpp/CMakeFiles/cvproj_capture.dir/src/yolo_onnx_detector.cpp.o"
 	cd /home/rededge/workspace/CV-proj-2026/build-opencv410/cpp && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT cpp/CMakeFiles/cvproj_capture.dir/src/yolo_onnx_detector.cpp.o -MF CMakeFiles/cvproj_capture.dir/src/yolo_onnx_detector.cpp.o.d -o CMakeFiles/cvproj_capture.dir/src/yolo_onnx_detector.cpp.o -c /home/rededge/workspace/CV-proj-2026/cpp/src/yolo_onnx_detector.cpp
 
 cpp/CMakeFiles/cvproj_capture.dir/src/yolo_onnx_detector.cpp.i: cmake_force
@@ -170,7 +184,7 @@ cpp/CMakeFiles/cvproj_capture.dir/src/yolo_onnx_detector.cpp.s: cmake_force
 cpp/CMakeFiles/cvproj_capture.dir/src/socketcan_gimbal.cpp.o: cpp/CMakeFiles/cvproj_capture.dir/flags.make
 cpp/CMakeFiles/cvproj_capture.dir/src/socketcan_gimbal.cpp.o: /home/rededge/workspace/CV-proj-2026/cpp/src/socketcan_gimbal.cpp
 cpp/CMakeFiles/cvproj_capture.dir/src/socketcan_gimbal.cpp.o: cpp/CMakeFiles/cvproj_capture.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/rededge/workspace/CV-proj-2026/build-opencv410/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object cpp/CMakeFiles/cvproj_capture.dir/src/socketcan_gimbal.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/rededge/workspace/CV-proj-2026/build-opencv410/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object cpp/CMakeFiles/cvproj_capture.dir/src/socketcan_gimbal.cpp.o"
 	cd /home/rededge/workspace/CV-proj-2026/build-opencv410/cpp && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT cpp/CMakeFiles/cvproj_capture.dir/src/socketcan_gimbal.cpp.o -MF CMakeFiles/cvproj_capture.dir/src/socketcan_gimbal.cpp.o.d -o CMakeFiles/cvproj_capture.dir/src/socketcan_gimbal.cpp.o -c /home/rededge/workspace/CV-proj-2026/cpp/src/socketcan_gimbal.cpp
 
 cpp/CMakeFiles/cvproj_capture.dir/src/socketcan_gimbal.cpp.i: cmake_force
@@ -181,21 +195,53 @@ cpp/CMakeFiles/cvproj_capture.dir/src/socketcan_gimbal.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/cvproj_capture.dir/src/socketcan_gimbal.cpp.s"
 	cd /home/rededge/workspace/CV-proj-2026/build-opencv410/cpp && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/rededge/workspace/CV-proj-2026/cpp/src/socketcan_gimbal.cpp -o CMakeFiles/cvproj_capture.dir/src/socketcan_gimbal.cpp.s
 
+cpp/CMakeFiles/cvproj_capture.dir/src/target_state_filter.cpp.o: cpp/CMakeFiles/cvproj_capture.dir/flags.make
+cpp/CMakeFiles/cvproj_capture.dir/src/target_state_filter.cpp.o: /home/rededge/workspace/CV-proj-2026/cpp/src/target_state_filter.cpp
+cpp/CMakeFiles/cvproj_capture.dir/src/target_state_filter.cpp.o: cpp/CMakeFiles/cvproj_capture.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/rededge/workspace/CV-proj-2026/build-opencv410/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object cpp/CMakeFiles/cvproj_capture.dir/src/target_state_filter.cpp.o"
+	cd /home/rededge/workspace/CV-proj-2026/build-opencv410/cpp && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT cpp/CMakeFiles/cvproj_capture.dir/src/target_state_filter.cpp.o -MF CMakeFiles/cvproj_capture.dir/src/target_state_filter.cpp.o.d -o CMakeFiles/cvproj_capture.dir/src/target_state_filter.cpp.o -c /home/rededge/workspace/CV-proj-2026/cpp/src/target_state_filter.cpp
+
+cpp/CMakeFiles/cvproj_capture.dir/src/target_state_filter.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/cvproj_capture.dir/src/target_state_filter.cpp.i"
+	cd /home/rededge/workspace/CV-proj-2026/build-opencv410/cpp && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/rededge/workspace/CV-proj-2026/cpp/src/target_state_filter.cpp > CMakeFiles/cvproj_capture.dir/src/target_state_filter.cpp.i
+
+cpp/CMakeFiles/cvproj_capture.dir/src/target_state_filter.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/cvproj_capture.dir/src/target_state_filter.cpp.s"
+	cd /home/rededge/workspace/CV-proj-2026/build-opencv410/cpp && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/rededge/workspace/CV-proj-2026/cpp/src/target_state_filter.cpp -o CMakeFiles/cvproj_capture.dir/src/target_state_filter.cpp.s
+
+cpp/CMakeFiles/cvproj_capture.dir/src/realsense_t265_source.cpp.o: cpp/CMakeFiles/cvproj_capture.dir/flags.make
+cpp/CMakeFiles/cvproj_capture.dir/src/realsense_t265_source.cpp.o: /home/rededge/workspace/CV-proj-2026/cpp/src/realsense_t265_source.cpp
+cpp/CMakeFiles/cvproj_capture.dir/src/realsense_t265_source.cpp.o: cpp/CMakeFiles/cvproj_capture.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/rededge/workspace/CV-proj-2026/build-opencv410/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building CXX object cpp/CMakeFiles/cvproj_capture.dir/src/realsense_t265_source.cpp.o"
+	cd /home/rededge/workspace/CV-proj-2026/build-opencv410/cpp && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT cpp/CMakeFiles/cvproj_capture.dir/src/realsense_t265_source.cpp.o -MF CMakeFiles/cvproj_capture.dir/src/realsense_t265_source.cpp.o.d -o CMakeFiles/cvproj_capture.dir/src/realsense_t265_source.cpp.o -c /home/rededge/workspace/CV-proj-2026/cpp/src/realsense_t265_source.cpp
+
+cpp/CMakeFiles/cvproj_capture.dir/src/realsense_t265_source.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/cvproj_capture.dir/src/realsense_t265_source.cpp.i"
+	cd /home/rededge/workspace/CV-proj-2026/build-opencv410/cpp && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/rededge/workspace/CV-proj-2026/cpp/src/realsense_t265_source.cpp > CMakeFiles/cvproj_capture.dir/src/realsense_t265_source.cpp.i
+
+cpp/CMakeFiles/cvproj_capture.dir/src/realsense_t265_source.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/cvproj_capture.dir/src/realsense_t265_source.cpp.s"
+	cd /home/rededge/workspace/CV-proj-2026/build-opencv410/cpp && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/rededge/workspace/CV-proj-2026/cpp/src/realsense_t265_source.cpp -o CMakeFiles/cvproj_capture.dir/src/realsense_t265_source.cpp.s
+
 # Object files for target cvproj_capture
 cvproj_capture_OBJECTS = \
 "CMakeFiles/cvproj_capture.dir/src/aravis_frame_source.cpp.o" \
+"CMakeFiles/cvproj_capture.dir/src/bytetrack_tracker.cpp.o" \
 "CMakeFiles/cvproj_capture.dir/src/main.cpp.o" \
 "CMakeFiles/cvproj_capture.dir/src/motion_pipeline.cpp.o" \
 "CMakeFiles/cvproj_capture.dir/src/opencv_video_source.cpp.o" \
 "CMakeFiles/cvproj_capture.dir/src/hikrobot_mvs_source.cpp.o" \
 "CMakeFiles/cvproj_capture.dir/src/mjpeg_server.cpp.o" \
 "CMakeFiles/cvproj_capture.dir/src/yolo_onnx_detector.cpp.o" \
-"CMakeFiles/cvproj_capture.dir/src/socketcan_gimbal.cpp.o"
+"CMakeFiles/cvproj_capture.dir/src/socketcan_gimbal.cpp.o" \
+"CMakeFiles/cvproj_capture.dir/src/target_state_filter.cpp.o" \
+"CMakeFiles/cvproj_capture.dir/src/realsense_t265_source.cpp.o"
 
 # External object files for target cvproj_capture
 cvproj_capture_EXTERNAL_OBJECTS =
 
 cpp/cvproj_capture: cpp/CMakeFiles/cvproj_capture.dir/src/aravis_frame_source.cpp.o
+cpp/cvproj_capture: cpp/CMakeFiles/cvproj_capture.dir/src/bytetrack_tracker.cpp.o
 cpp/cvproj_capture: cpp/CMakeFiles/cvproj_capture.dir/src/main.cpp.o
 cpp/cvproj_capture: cpp/CMakeFiles/cvproj_capture.dir/src/motion_pipeline.cpp.o
 cpp/cvproj_capture: cpp/CMakeFiles/cvproj_capture.dir/src/opencv_video_source.cpp.o
@@ -203,11 +249,14 @@ cpp/cvproj_capture: cpp/CMakeFiles/cvproj_capture.dir/src/hikrobot_mvs_source.cp
 cpp/cvproj_capture: cpp/CMakeFiles/cvproj_capture.dir/src/mjpeg_server.cpp.o
 cpp/cvproj_capture: cpp/CMakeFiles/cvproj_capture.dir/src/yolo_onnx_detector.cpp.o
 cpp/cvproj_capture: cpp/CMakeFiles/cvproj_capture.dir/src/socketcan_gimbal.cpp.o
+cpp/cvproj_capture: cpp/CMakeFiles/cvproj_capture.dir/src/target_state_filter.cpp.o
+cpp/cvproj_capture: cpp/CMakeFiles/cvproj_capture.dir/src/realsense_t265_source.cpp.o
 cpp/cvproj_capture: cpp/CMakeFiles/cvproj_capture.dir/build.make
 cpp/cvproj_capture: /home/rededge/opt/opencv-4.10.0/lib/libopencv_highgui.so.4.10.0
 cpp/cvproj_capture: /home/rededge/opt/opencv-4.10.0/lib/libopencv_videoio.so.4.10.0
 cpp/cvproj_capture: /home/rededge/opt/opencv-4.10.0/lib/libopencv_video.so.4.10.0
 cpp/cvproj_capture: /home/rededge/opt/opencv-4.10.0/lib/libopencv_imgcodecs.so.4.10.0
+cpp/cvproj_capture: /home/rededge/opt/librealsense/lib/librealsense2.so
 cpp/cvproj_capture: /home/rededge/opt/opencv-4.10.0/lib/libopencv_dnn.so.4.10.0
 cpp/cvproj_capture: /home/rededge/opt/opencv-4.10.0/lib/libopencv_imgproc.so.4.10.0
 cpp/cvproj_capture: /home/rededge/opt/opencv-4.10.0/lib/libopencv_core.so.4.10.0
@@ -216,7 +265,7 @@ cpp/cvproj_capture: /usr/lib/aarch64-linux-gnu/libgio-2.0.so
 cpp/cvproj_capture: /usr/lib/aarch64-linux-gnu/libgobject-2.0.so
 cpp/cvproj_capture: /usr/lib/aarch64-linux-gnu/libglib-2.0.so
 cpp/cvproj_capture: cpp/CMakeFiles/cvproj_capture.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/rededge/workspace/CV-proj-2026/build-opencv410/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Linking CXX executable cvproj_capture"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/rededge/workspace/CV-proj-2026/build-opencv410/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Linking CXX executable cvproj_capture"
 	cd /home/rededge/workspace/CV-proj-2026/build-opencv410/cpp && $(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/cvproj_capture.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

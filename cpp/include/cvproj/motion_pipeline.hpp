@@ -22,8 +22,13 @@ struct MotionPipelineConfig {
 struct MotionPipelineResult {
     cv::Mat annotated_frame;
     std::optional<cv::Rect> roi;
+    std::optional<cv::Rect> motion_roi;
+    std::optional<cv::Point2f> motion_center;
     std::optional<cv::Rect> target_box;
     int motion_count = 0;
+    double motion_confidence = 0.0;
+    double global_dx = 0.0;
+    double global_dy = 0.0;
     double fps = 0.0;
     double processing_ms = 0.0;
     double source_delta_seconds = 0.0;

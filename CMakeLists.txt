@@ -7,6 +7,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(CVPROJ_ENABLE_HIKROBOT_MVS "Enable Hikrobot MVS SDK integration" ON)
 option(CVPROJ_ENABLE_ARAVIS "Enable Aravis USB3 Vision / GenICam integration" ON)
+option(CVPROJ_ENABLE_REALSENSE "Enable Intel RealSense / T265 integration" ON)
 
 if(NOT OpenCV_DIR AND EXISTS "/opt/homebrew/opt/opencv/lib/cmake/opencv4")
     set(OpenCV_DIR "/opt/homebrew/opt/opencv/lib/cmake/opencv4")

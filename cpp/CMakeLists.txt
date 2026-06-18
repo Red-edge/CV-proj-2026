@@ -2,6 +2,7 @@ set(CVPROJ_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 set(CVPROJ_SOURCES
     src/aravis_frame_source.cpp
+    src/bytetrack_tracker.cpp
     src/main.cpp
     src/motion_pipeline.cpp
     src/opencv_video_source.cpp
@@ -9,6 +10,8 @@ set(CVPROJ_SOURCES
     src/mjpeg_server.cpp
     src/yolo_onnx_detector.cpp
     src/socketcan_gimbal.cpp
+    src/target_state_filter.cpp
+    src/realsense_t265_source.cpp
 )
 
 add_executable(cvproj_capture ${CVPROJ_SOURCES})
@@ -31,6 +34,46 @@ if(CVPROJ_ENABLE_ARAVIS)
         message(STATUS "Aravis enabled")
     else()
         message(WARNING "Aravis not found. Build will not support standard USB3 Vision / GenICam backend.")
+    endif()
+endif()
+
+if(CVPROJ_ENABLE_REALSENSE)
+    find_path(REALSENSE2_INCLUDE_DIR
+        NAMES librealsense2/rs.hpp
+        HINTS
+            $ENV{HOME}/opt/librealsense/include
+            /usr/local/include
+            /usr/include
+    )
+    find_library(REALSENSE2_LIBRARY
+        NAMES realsense2 librealsense2
+        HINTS
+            $ENV{HOME}/opt/librealsense/lib
+            /usr/local/lib
+            /usr/lib
+            /usr/lib/aarch64-linux-gnu
+    )
+    if(REALSENSE2_INCLUDE_DIR AND REALSENSE2_LIBRARY)
+        target_compile_definitions(cvproj_capture PRIVATE CVPROJ_HAS_REALSENSE2=1)
+        target_include_directories(cvproj_capture PRIVATE ${REALSENSE2_INCLUDE_DIR})
+        target_link_libraries(cvproj_capture PRIVATE ${REALSENSE2_LIBRARY})
+        get_filename_component(REALSENSE2_LIB_DIR "${REALSENSE2_LIBRARY}" DIRECTORY)
+        set_target_properties(cvproj_capture PROPERTIES
+            BUILD_RPATH "${REALSENSE2_LIB_DIR}"
+            INSTALL_RPATH "${REALSENSE2_LIB_DIR}"
+        )
+        message(STATUS "RealSense/librealsense2 enabled")
+        message(STATUS "  include: ${REALSENSE2_INCLUDE_DIR}")
+        message(STATUS "  library: ${REALSENSE2_LIBRARY}")
+    else()
+        pkg_check_modules(REALSENSE2 IMPORTED_TARGET realsense2)
+        if(REALSENSE2_FOUND)
+            target_compile_definitions(cvproj_capture PRIVATE CVPROJ_HAS_REALSENSE2=1)
+            target_link_libraries(cvproj_capture PRIVATE PkgConfig::REALSENSE2)
+            message(STATUS "RealSense/librealsense2 enabled")
+        else()
+            message(WARNING "librealsense2 not found. Build will not support --backend t265/realsense.")
+        endif()
     endif()
 endif()
 

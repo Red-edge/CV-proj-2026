@@ -42,7 +42,7 @@ path used by the browser preview and recording output.
   --livestream \
   --http-preview 0.0.0.0:8080 --preview-fps 15 \
   --yaw-dry-run \
-  --yaw-max-angle 10 \
+  --yaw-max-angle 30 \
   --headless
 ```
 
@@ -58,7 +58,7 @@ Pass criteria:
 - `outputs/rock5b_dryrun_overlay.mp4` contains the same overlays.
 - `outputs/rock5b_dryrun_overlay.csv` contains `yaw_target_deg`, `yaw_rpm`,
   `yaw_limited`, and `yaw_status`.
-- `yaw_target_deg` never exceeds `-10..10`.
+- `yaw_target_deg` never exceeds `-30..30`.
 
 ## 3. SocketCAN setup
 
@@ -110,7 +110,7 @@ Start with low speed:
   --yaw-enable \
   --yaw-can-iface can0 \
   --yaw-id 0x8001 \
-  --yaw-max-angle 10 \
+  --yaw-max-angle 30 \
   --yaw-max-rpm 120 \
   --yaw-kp 12 \
   --yaw-hfov 70 \
@@ -125,7 +125,8 @@ If the camera turns away from the target, rerun with:
 
 ## 5. Safety notes
 
-- The yaw target is clamped in software to `-10..10` degrees.
+- The yaw hard boundary is `-30..30` degrees around `yaw-feedback-zero-deg`.
+- `yaw-limit-margin-deg=2` reduces rpm near the boundary; targets still clamp to `-30..30`, and out-of-range feedback recovers to the nearest boundary.
 - The controller sends `0 rpm` when no target is tracked.
 - On process exit, the controller sends `0 rpm` and a stop frame.
 - Keep `--yaw-max-rpm` low until mechanical direction and CAN wiring are confirmed.
@@ -314,3 +315,76 @@ Last reported detection FPS: 45.5651
 ```
 
 `Last reported end-to-end loop FPS` 是更严格的实际识别更新节奏；`Last reported detection FPS` 是单次 YOLO 推理耗时换算出的检测器吞吐。metrics CSV 也包含 `detection_ms,detection_fps`。`record-fps` 现在会真正节流写视频，不再每个处理帧都编码成 MP4。
+
+## T265 单路图像 + 真实 yaw 电机
+
+启动：
+
+```bash
+cd ~/workspace/CV-proj-2026
+./scripts/run_t265_yaw_real.sh
+```
+
+默认读取：
+
+```text
+configs/t265_yaw_real.conf
+```
+
+该配置使用 T265 fisheye 1 单路输出进入 pipeline。T265 固件要求 fisheye 1/2 成对打开，程序内部会同时启用两路，但只把配置中的 `t265-fisheye-index=1` 输出给光流、YOLO、前端、录制和 yaw 控制。
+
+已验证的设备信息：
+
+```text
+Intel RealSense T265
+Serial Number: 121222110967
+Fisheye 1/2: 848x800 @ 30Hz Y8
+Pose: 200Hz 6DOF
+```
+
+程序读到 fisheye 1 内参后，会自动给 yaw 映射使用：
+
+```text
+fx=286.064 fy=286.063 cx=432.019 cy=392.678 model=kannala_brandt4
+```
+
+无目标时程序会发送 0 rpm hold。需要验证真实 CAN/电机链路时，用低速测试目标：
+
+```bash
+./scripts/run_t265_yaw_real.sh configs/t265_yaw_real.conf \
+  --detector none \
+  --yaw-test-target-x 460 \
+  --yaw-max-rpm 15 \
+  --yaw-kp 3 \
+  --max-frames 20
+```
+
+这次实测中，metrics CSV 记录了 20 行非零 `yaw_rpm=15`，`candump` 同时确认真实总线有扩展 ID `0x8001` 的速度帧：
+
+```text
+can0 00008001#0735E803D0070080
+can0 100#
+...
+can0 00008001#07350000D0070080
+can0 00008001#010000
+```
+
+注意：当前 `--status-only` 已能收到 `0x100` 上的 `27 01` 位置/速度反馈。由于 direct-CAN `conf_write` 在这套链路上返回失败码，现在推荐使用软件零点：把 yaw 轴手动放到机械/光学中心后执行 `./scripts/motor_reset_zero.sh --record-software-zero configs/t265_yaw_real.conf`。主程序会用 `raw_motor_feedback_deg - yaw-feedback-zero-deg` 作为相对 yaw。`yaw-max-angle=30` 是绝对硬边界，请求超过 `±30°` 的目标会被 clamp 到 `±30°`；如果实际反馈已经在限位外，控制器会把目标强制设为最近的 `±30°` 边界并只允许向内恢复。`yaw-limit-margin-deg=2` 用于接近边界时降低 rpm；`yaw-max-rpm` 是最大输出速度，单位 rpm。
+
+限位扫动脚本：
+
+```bash
+./scripts/motor_limit_sweep.sh configs/t265_yaw_real.conf --dry-run
+./scripts/motor_limit_sweep.sh configs/t265_yaw_real.conf
+```
+
+动作顺序为：如果已经超出限位则先恢复到最近的 `±30°` 边界，然后回到软件零点、向左到 `+yaw-max-angle`、向右到 `-yaw-max-angle`、最后回到软件零点。当前安装方向约定为：目标在画面左侧时应向左转，电机反馈 `pos` 增加。
+
+PID 调参脚本：
+
+```bash
+./scripts/motor_pid_tune.sh configs/t265_yaw_real.conf --dry-run
+./scripts/motor_pid_tune.sh configs/t265_yaw_real.conf
+```
+
+该脚本每次启动都会重新读取 `configs/t265_yaw_real.conf` 中的 `yaw-max-rpm`、`yaw-kp`、`yaw-ki`、`yaw-kd`、`yaw-deadband`、`yaw-feedback-zero-deg` 和 `yaw-max-angle`。动作按固定时间执行，不等待到位：软件零点 `0°`、左侧 `+yaw-max-angle`、右侧 `-yaw-max-angle`、最后回零，每两个坐标之间默认 `1.5s`。这是专门用于 PID 调参的脚本，会按要求无视主程序的限位降速/恢复逻辑；运行前应确认机械空间允许完整扫动。结果 CSV 保存在 `outputs/pid_tune_*.csv`，同名 SVG 折线图保存在 `outputs/pid_tune_*.svg`。CSV 包含时间、目标角度、反馈相对角度、误差、命令 rpm、反馈 rpm、原始 CAN 反馈 ID/payload、`pos_raw`、`vel_raw`、torque 和 PID 参数，用于分析临界震荡值。

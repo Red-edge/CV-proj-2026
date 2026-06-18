@@ -96,12 +96,12 @@ cpp/clean: cpp/CMakeFiles/cvproj_capture.dir/clean
 cpp/CMakeFiles/cvproj_capture.dir/all:
 	$(MAKE) $(MAKESILENT) -f cpp/CMakeFiles/cvproj_capture.dir/build.make cpp/CMakeFiles/cvproj_capture.dir/depend
 	$(MAKE) $(MAKESILENT) -f cpp/CMakeFiles/cvproj_capture.dir/build.make cpp/CMakeFiles/cvproj_capture.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/rededge/workspace/CV-proj-2026/build-opencv410/CMakeFiles --progress-num=1,2,3,4,5,6,7,8,9 "Built target cvproj_capture"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/rededge/workspace/CV-proj-2026/build-opencv410/CMakeFiles --progress-num=1,2,3,4,5,6,7,8,9,10,11,12 "Built target cvproj_capture"
 .PHONY : cpp/CMakeFiles/cvproj_capture.dir/all
 
 # Build rule for subdir invocation for target.
 cpp/CMakeFiles/cvproj_capture.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/rededge/workspace/CV-proj-2026/build-opencv410/CMakeFiles 9
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/rededge/workspace/CV-proj-2026/build-opencv410/CMakeFiles 12
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 cpp/CMakeFiles/cvproj_capture.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/rededge/workspace/CV-proj-2026/build-opencv410/CMakeFiles 0
 .PHONY : cpp/CMakeFiles/cvproj_capture.dir/rule

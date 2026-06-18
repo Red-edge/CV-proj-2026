@@ -59,6 +59,8 @@ MotionPipelineResult MotionPipeline::process(const FramePacket& packet) {
 
     std::vector<float> magnitudes(fixed_points_.size(), 0.0F);
     std::vector<cv::Point2f> compensated_points = fixed_points_;
+    double global_dx = 0.0;
+    double global_dy = 0.0;
 
     if (!prev_gray_.empty()) {
         std::vector<cv::Point2f> next_points;
@@ -87,8 +89,8 @@ MotionPipelineResult MotionPipeline::process(const FramePacket& packet) {
             dys.push_back(next_points[i].y - fixed_points_[i].y);
         }
 
-        const double global_dx = median_of(dxs);
-        const double global_dy = median_of(dys);
+        global_dx = median_of(dxs);
+        global_dy = median_of(dys);
 
         for (std::size_t i = 0; i < fixed_points_.size() && i < next_points.size(); ++i) {
             if (i >= status.size() || status[i] == 0) {
@@ -100,6 +102,8 @@ MotionPipelineResult MotionPipeline::process(const FramePacket& packet) {
             compensated_points[i] = cv::Point2f(fixed_points_[i].x + dx, fixed_points_[i].y + dy);
         }
     }
+    result.global_dx = global_dx;
+    result.global_dy = global_dy;
 
     prev_gray_ = gray;
 
@@ -110,8 +114,17 @@ MotionPipelineResult MotionPipeline::process(const FramePacket& packet) {
         }
     }
     result.motion_count = motion_count;
+    result.motion_confidence = fixed_points_.empty()
+                                   ? 0.0
+                                   : static_cast<double>(motion_count) / static_cast<double>(fixed_points_.size());
 
     result.roi = get_roi_from_motion_points(fixed_points_, magnitudes, frame_bgr.size());
+    result.motion_roi = result.roi;
+    if (result.motion_roi.has_value()) {
+        const auto& roi = *result.motion_roi;
+        result.motion_center = cv::Point2f(static_cast<float>(roi.x) + 0.5F * static_cast<float>(roi.width),
+                                           static_cast<float>(roi.y) + 0.5F * static_cast<float>(roi.height));
+    }
     auto blob_box = detect_target_blob(compensated_points, magnitudes, frame_bgr.size());
     if (blob_box.has_value()) {
         result.target_box = smooth_track(*blob_box, result.source_delta_seconds);
@@ -273,25 +286,6 @@ void MotionPipeline::draw_overlay(cv::Mat& vis,
         cv::drawMarker(vis, center, cv::Scalar(0, 255, 0), cv::MARKER_CROSS, 18, 2, cv::LINE_AA);
     }
 
-    std::ostringstream oss;
-    oss.setf(std::ios::fixed);
-    oss.precision(1);
-    oss << "FPS: " << result.fps << "  MotionPts: " << result.motion_count;
-    oss.precision(2);
-    oss << "  Proc: " << result.processing_ms << " ms";
-    if (result.source_fps > 0.0) {
-        oss.precision(1);
-        oss << "  Src: " << result.source_fps;
-    }
-
-    cv::putText(vis,
-                oss.str(),
-                cv::Point(16, 30),
-                cv::FONT_HERSHEY_SIMPLEX,
-                0.7,
-                cv::Scalar(0, 255, 255),
-                2,
-                cv::LINE_AA);
 }
 
 }  // namespace cvproj

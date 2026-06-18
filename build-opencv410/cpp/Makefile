@@ -154,6 +154,30 @@ src/aravis_frame_source.cpp.s:
 	cd /home/rededge/workspace/CV-proj-2026/build-opencv410 && $(MAKE) $(MAKESILENT) -f cpp/CMakeFiles/cvproj_capture.dir/build.make cpp/CMakeFiles/cvproj_capture.dir/src/aravis_frame_source.cpp.s
 .PHONY : src/aravis_frame_source.cpp.s
 
+src/bytetrack_tracker.o: src/bytetrack_tracker.cpp.o
+.PHONY : src/bytetrack_tracker.o
+
+# target to build an object file
+src/bytetrack_tracker.cpp.o:
+	cd /home/rededge/workspace/CV-proj-2026/build-opencv410 && $(MAKE) $(MAKESILENT) -f cpp/CMakeFiles/cvproj_capture.dir/build.make cpp/CMakeFiles/cvproj_capture.dir/src/bytetrack_tracker.cpp.o
+.PHONY : src/bytetrack_tracker.cpp.o
+
+src/bytetrack_tracker.i: src/bytetrack_tracker.cpp.i
+.PHONY : src/bytetrack_tracker.i
+
+# target to preprocess a source file
+src/bytetrack_tracker.cpp.i:
+	cd /home/rededge/workspace/CV-proj-2026/build-opencv410 && $(MAKE) $(MAKESILENT) -f cpp/CMakeFiles/cvproj_capture.dir/build.make cpp/CMakeFiles/cvproj_capture.dir/src/bytetrack_tracker.cpp.i
+.PHONY : src/bytetrack_tracker.cpp.i
+
+src/bytetrack_tracker.s: src/bytetrack_tracker.cpp.s
+.PHONY : src/bytetrack_tracker.s
+
+# target to generate assembly for a file
+src/bytetrack_tracker.cpp.s:
+	cd /home/rededge/workspace/CV-proj-2026/build-opencv410 && $(MAKE) $(MAKESILENT) -f cpp/CMakeFiles/cvproj_capture.dir/build.make cpp/CMakeFiles/cvproj_capture.dir/src/bytetrack_tracker.cpp.s
+.PHONY : src/bytetrack_tracker.cpp.s
+
 src/hikrobot_mvs_source.o: src/hikrobot_mvs_source.cpp.o
 .PHONY : src/hikrobot_mvs_source.o
 
@@ -274,6 +298,30 @@ src/opencv_video_source.cpp.s:
 	cd /home/rededge/workspace/CV-proj-2026/build-opencv410 && $(MAKE) $(MAKESILENT) -f cpp/CMakeFiles/cvproj_capture.dir/build.make cpp/CMakeFiles/cvproj_capture.dir/src/opencv_video_source.cpp.s
 .PHONY : src/opencv_video_source.cpp.s
 
+src/realsense_t265_source.o: src/realsense_t265_source.cpp.o
+.PHONY : src/realsense_t265_source.o
+
+# target to build an object file
+src/realsense_t265_source.cpp.o:
+	cd /home/rededge/workspace/CV-proj-2026/build-opencv410 && $(MAKE) $(MAKESILENT) -f cpp/CMakeFiles/cvproj_capture.dir/build.make cpp/CMakeFiles/cvproj_capture.dir/src/realsense_t265_source.cpp.o
+.PHONY : src/realsense_t265_source.cpp.o
+
+src/realsense_t265_source.i: src/realsense_t265_source.cpp.i
+.PHONY : src/realsense_t265_source.i
+
+# target to preprocess a source file
+src/realsense_t265_source.cpp.i:
+	cd /home/rededge/workspace/CV-proj-2026/build-opencv410 && $(MAKE) $(MAKESILENT) -f cpp/CMakeFiles/cvproj_capture.dir/build.make cpp/CMakeFiles/cvproj_capture.dir/src/realsense_t265_source.cpp.i
+.PHONY : src/realsense_t265_source.cpp.i
+
+src/realsense_t265_source.s: src/realsense_t265_source.cpp.s
+.PHONY : src/realsense_t265_source.s
+
+# target to generate assembly for a file
+src/realsense_t265_source.cpp.s:
+	cd /home/rededge/workspace/CV-proj-2026/build-opencv410 && $(MAKE) $(MAKESILENT) -f cpp/CMakeFiles/cvproj_capture.dir/build.make cpp/CMakeFiles/cvproj_capture.dir/src/realsense_t265_source.cpp.s
+.PHONY : src/realsense_t265_source.cpp.s
+
 src/socketcan_gimbal.o: src/socketcan_gimbal.cpp.o
 .PHONY : src/socketcan_gimbal.o
 
@@ -297,6 +345,30 @@ src/socketcan_gimbal.s: src/socketcan_gimbal.cpp.s
 src/socketcan_gimbal.cpp.s:
 	cd /home/rededge/workspace/CV-proj-2026/build-opencv410 && $(MAKE) $(MAKESILENT) -f cpp/CMakeFiles/cvproj_capture.dir/build.make cpp/CMakeFiles/cvproj_capture.dir/src/socketcan_gimbal.cpp.s
 .PHONY : src/socketcan_gimbal.cpp.s
+
+src/target_state_filter.o: src/target_state_filter.cpp.o
+.PHONY : src/target_state_filter.o
+
+# target to build an object file
+src/target_state_filter.cpp.o:
+	cd /home/rededge/workspace/CV-proj-2026/build-opencv410 && $(MAKE) $(MAKESILENT) -f cpp/CMakeFiles/cvproj_capture.dir/build.make cpp/CMakeFiles/cvproj_capture.dir/src/target_state_filter.cpp.o
+.PHONY : src/target_state_filter.cpp.o
+
+src/target_state_filter.i: src/target_state_filter.cpp.i
+.PHONY : src/target_state_filter.i
+
+# target to preprocess a source file
+src/target_state_filter.cpp.i:
+	cd /home/rededge/workspace/CV-proj-2026/build-opencv410 && $(MAKE) $(MAKESILENT) -f cpp/CMakeFiles/cvproj_capture.dir/build.make cpp/CMakeFiles/cvproj_capture.dir/src/target_state_filter.cpp.i
+.PHONY : src/target_state_filter.cpp.i
+
+src/target_state_filter.s: src/target_state_filter.cpp.s
+.PHONY : src/target_state_filter.s
+
+# target to generate assembly for a file
+src/target_state_filter.cpp.s:
+	cd /home/rededge/workspace/CV-proj-2026/build-opencv410 && $(MAKE) $(MAKESILENT) -f cpp/CMakeFiles/cvproj_capture.dir/build.make cpp/CMakeFiles/cvproj_capture.dir/src/target_state_filter.cpp.s
+.PHONY : src/target_state_filter.cpp.s
 
 src/yolo_onnx_detector.o: src/yolo_onnx_detector.cpp.o
 .PHONY : src/yolo_onnx_detector.o
@@ -334,6 +406,9 @@ help:
 	@echo "... src/aravis_frame_source.o"
 	@echo "... src/aravis_frame_source.i"
 	@echo "... src/aravis_frame_source.s"
+	@echo "... src/bytetrack_tracker.o"
+	@echo "... src/bytetrack_tracker.i"
+	@echo "... src/bytetrack_tracker.s"
 	@echo "... src/hikrobot_mvs_source.o"
 	@echo "... src/hikrobot_mvs_source.i"
 	@echo "... src/hikrobot_mvs_source.s"
@@ -349,9 +424,15 @@ help:
 	@echo "... src/opencv_video_source.o"
 	@echo "... src/opencv_video_source.i"
 	@echo "... src/opencv_video_source.s"
+	@echo "... src/realsense_t265_source.o"
+	@echo "... src/realsense_t265_source.i"
+	@echo "... src/realsense_t265_source.s"
 	@echo "... src/socketcan_gimbal.o"
 	@echo "... src/socketcan_gimbal.i"
 	@echo "... src/socketcan_gimbal.s"
+	@echo "... src/target_state_filter.o"
+	@echo "... src/target_state_filter.i"
+	@echo "... src/target_state_filter.s"
 	@echo "... src/yolo_onnx_detector.o"
 	@echo "... src/yolo_onnx_detector.i"
 	@echo "... src/yolo_onnx_detector.s"

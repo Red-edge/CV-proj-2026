@@ -9,12 +9,15 @@ set(CMAKE_DEPENDS_LANGUAGES
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/rededge/workspace/CV-proj-2026/cpp/src/aravis_frame_source.cpp" "cpp/CMakeFiles/cvproj_capture.dir/src/aravis_frame_source.cpp.o" "gcc" "cpp/CMakeFiles/cvproj_capture.dir/src/aravis_frame_source.cpp.o.d"
+  "/home/rededge/workspace/CV-proj-2026/cpp/src/bytetrack_tracker.cpp" "cpp/CMakeFiles/cvproj_capture.dir/src/bytetrack_tracker.cpp.o" "gcc" "cpp/CMakeFiles/cvproj_capture.dir/src/bytetrack_tracker.cpp.o.d"
   "/home/rededge/workspace/CV-proj-2026/cpp/src/hikrobot_mvs_source.cpp" "cpp/CMakeFiles/cvproj_capture.dir/src/hikrobot_mvs_source.cpp.o" "gcc" "cpp/CMakeFiles/cvproj_capture.dir/src/hikrobot_mvs_source.cpp.o.d"
   "/home/rededge/workspace/CV-proj-2026/cpp/src/main.cpp" "cpp/CMakeFiles/cvproj_capture.dir/src/main.cpp.o" "gcc" "cpp/CMakeFiles/cvproj_capture.dir/src/main.cpp.o.d"
   "/home/rededge/workspace/CV-proj-2026/cpp/src/mjpeg_server.cpp" "cpp/CMakeFiles/cvproj_capture.dir/src/mjpeg_server.cpp.o" "gcc" "cpp/CMakeFiles/cvproj_capture.dir/src/mjpeg_server.cpp.o.d"
   "/home/rededge/workspace/CV-proj-2026/cpp/src/motion_pipeline.cpp" "cpp/CMakeFiles/cvproj_capture.dir/src/motion_pipeline.cpp.o" "gcc" "cpp/CMakeFiles/cvproj_capture.dir/src/motion_pipeline.cpp.o.d"
   "/home/rededge/workspace/CV-proj-2026/cpp/src/opencv_video_source.cpp" "cpp/CMakeFiles/cvproj_capture.dir/src/opencv_video_source.cpp.o" "gcc" "cpp/CMakeFiles/cvproj_capture.dir/src/opencv_video_source.cpp.o.d"
+  "/home/rededge/workspace/CV-proj-2026/cpp/src/realsense_t265_source.cpp" "cpp/CMakeFiles/cvproj_capture.dir/src/realsense_t265_source.cpp.o" "gcc" "cpp/CMakeFiles/cvproj_capture.dir/src/realsense_t265_source.cpp.o.d"
   "/home/rededge/workspace/CV-proj-2026/cpp/src/socketcan_gimbal.cpp" "cpp/CMakeFiles/cvproj_capture.dir/src/socketcan_gimbal.cpp.o" "gcc" "cpp/CMakeFiles/cvproj_capture.dir/src/socketcan_gimbal.cpp.o.d"
+  "/home/rededge/workspace/CV-proj-2026/cpp/src/target_state_filter.cpp" "cpp/CMakeFiles/cvproj_capture.dir/src/target_state_filter.cpp.o" "gcc" "cpp/CMakeFiles/cvproj_capture.dir/src/target_state_filter.cpp.o.d"
   "/home/rededge/workspace/CV-proj-2026/cpp/src/yolo_onnx_detector.cpp" "cpp/CMakeFiles/cvproj_capture.dir/src/yolo_onnx_detector.cpp.o" "gcc" "cpp/CMakeFiles/cvproj_capture.dir/src/yolo_onnx_detector.cpp.o.d"
   )
 

@@ -64,6 +64,7 @@ bool RealSenseT265Source::open(std::string* error) {
     close();
     impl_ = std::make_unique<Impl>();
     have_intrinsics_ = false;
+    last_pose_timestamp_seconds_ = 0.0;
 
 #if defined(CVPROJ_HAS_REALSENSE2)
     try {
@@ -167,6 +168,27 @@ bool RealSenseT265Source::read_impl(FramePacket& packet, int timeout_ms, bool la
         packet.frame_id = impl_->frame_counter++;
         packet.timestamp_seconds =
             fisheye.get_timestamp() > 0.0 ? fisheye.get_timestamp() / 1000.0 : now_seconds();
+        if (have_intrinsics_) {
+            packet.intrinsics = intrinsics_;
+        }
+        if (config_.enable_pose) {
+            const rs2::pose_frame pose = frames.first_or_default(RS2_STREAM_POSE);
+            if (pose) {
+                const rs2_pose data = pose.get_pose_data();
+                CameraMotion motion;
+                motion.valid = true;
+                motion.timestamp_seconds =
+                    pose.get_timestamp() > 0.0 ? pose.get_timestamp() / 1000.0 : packet.timestamp_seconds;
+                motion.dt_seconds = packet.timestamp_seconds > 0.0 && last_pose_timestamp_seconds_ > 0.0
+                                        ? std::max(0.0, packet.timestamp_seconds - last_pose_timestamp_seconds_)
+                                        : 0.0;
+                motion.angular_velocity_x_rad_s = data.angular_velocity.x;
+                motion.angular_velocity_y_rad_s = data.angular_velocity.y;
+                motion.angular_velocity_z_rad_s = data.angular_velocity.z;
+                packet.camera_motion = motion;
+                last_pose_timestamp_seconds_ = packet.timestamp_seconds;
+            }
+        }
         return true;
     } catch (const rs2::error& e) {
         if (error) {

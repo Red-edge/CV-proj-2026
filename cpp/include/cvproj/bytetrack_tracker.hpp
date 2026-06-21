@@ -45,7 +45,8 @@ public:
     std::vector<TrackedTarget> update(const std::vector<TrackerDetection>& detections,
                                       int frame_width,
                                       int frame_height,
-                                      bool detections_are_fresh = true);
+                                      bool detections_are_fresh = true,
+                                      cv::Point2f prediction_flow = cv::Point2f(0.0F, 0.0F));
     const ByteTrackConfig& config() const;
 
 private:

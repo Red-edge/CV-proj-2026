@@ -394,6 +394,30 @@ src/yolo_onnx_detector.cpp.s:
 	cd /home/rededge/workspace/CV-proj-2026/build-opencv410 && $(MAKE) $(MAKESILENT) -f cpp/CMakeFiles/cvproj_capture.dir/build.make cpp/CMakeFiles/cvproj_capture.dir/src/yolo_onnx_detector.cpp.s
 .PHONY : src/yolo_onnx_detector.cpp.s
 
+src/yolo_rknn_detector.o: src/yolo_rknn_detector.cpp.o
+.PHONY : src/yolo_rknn_detector.o
+
+# target to build an object file
+src/yolo_rknn_detector.cpp.o:
+	cd /home/rededge/workspace/CV-proj-2026/build-opencv410 && $(MAKE) $(MAKESILENT) -f cpp/CMakeFiles/cvproj_capture.dir/build.make cpp/CMakeFiles/cvproj_capture.dir/src/yolo_rknn_detector.cpp.o
+.PHONY : src/yolo_rknn_detector.cpp.o
+
+src/yolo_rknn_detector.i: src/yolo_rknn_detector.cpp.i
+.PHONY : src/yolo_rknn_detector.i
+
+# target to preprocess a source file
+src/yolo_rknn_detector.cpp.i:
+	cd /home/rededge/workspace/CV-proj-2026/build-opencv410 && $(MAKE) $(MAKESILENT) -f cpp/CMakeFiles/cvproj_capture.dir/build.make cpp/CMakeFiles/cvproj_capture.dir/src/yolo_rknn_detector.cpp.i
+.PHONY : src/yolo_rknn_detector.cpp.i
+
+src/yolo_rknn_detector.s: src/yolo_rknn_detector.cpp.s
+.PHONY : src/yolo_rknn_detector.s
+
+# target to generate assembly for a file
+src/yolo_rknn_detector.cpp.s:
+	cd /home/rededge/workspace/CV-proj-2026/build-opencv410 && $(MAKE) $(MAKESILENT) -f cpp/CMakeFiles/cvproj_capture.dir/build.make cpp/CMakeFiles/cvproj_capture.dir/src/yolo_rknn_detector.cpp.s
+.PHONY : src/yolo_rknn_detector.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -436,6 +460,9 @@ help:
 	@echo "... src/yolo_onnx_detector.o"
 	@echo "... src/yolo_onnx_detector.i"
 	@echo "... src/yolo_onnx_detector.s"
+	@echo "... src/yolo_rknn_detector.o"
+	@echo "... src/yolo_rknn_detector.i"
+	@echo "... src/yolo_rknn_detector.s"
 .PHONY : help
 
 

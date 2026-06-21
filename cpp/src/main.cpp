@@ -34,7 +34,9 @@
 #include "cvproj/realsense_t265_source.hpp"
 #include "cvproj/socketcan_gimbal.hpp"
 #include "cvproj/target_state_filter.hpp"
+#include "cvproj/yolo_detector.hpp"
 #include "cvproj/yolo_onnx_detector.hpp"
+#include "cvproj/yolo_rknn_detector.hpp"
 
 namespace fs = std::filesystem;
 
@@ -76,12 +78,14 @@ struct AppConfig {
     float det_nms = 0.45F;
     int detect_interval = 3;
     int det_input_size = 640;
+    std::string detect_roi_mode = "motion";
     std::string tracker = "bytetrack";
     float track_high_thresh = 0.45F;
     float track_low_thresh = 0.10F;
     float track_match_thresh = 0.30F;
     int track_buffer = 30;
     int track_min_hits = 2;
+    bool target_use_imu_prediction = true;
     std::string target_filter = "kalman";
     double target_filter_process_noise = 25.0;
     double target_filter_measurement_noise = 16.0;
@@ -133,6 +137,7 @@ struct AppConfig {
     double yaw_deadband_deg = 0.25;
     std::string yaw_control_mode = "visual-servo";
     std::string yaw_outer_rate_mode = "inference";
+    double yaw_outer_rate_hz = 30.0;
     double yaw_outer_max_stale_ms = 120.0;
     double yaw_outer_min_update_interval_ms = 0.0;
     double yaw_outer_kp = 3.0;
@@ -191,18 +196,20 @@ void print_usage() {
         << "  --denoise-sigma-color <default 75>\n"
         << "  --denoise-sigma-space <default 11>\n"
         << "  --denoise-passes <1|2, default 2>\n"
-        << "  --detector <none|yolo>\n"
+        << "  --detector <none|yolo|rknn>\n"
         << "  --model <onnx-path>\n"
         << "  --det-conf <threshold>\n"
         << "  --det-nms <threshold>\n"
         << "  --detect-interval <N>\n"
         << "  --det-input-size <pixels, default 640>\n"
+        << "  --detect-roi-mode <motion|full|auto>\n"
         << "  --tracker <bytetrack|none>\n"
         << "  --track-high-thresh <default 0.45>\n"
         << "  --track-low-thresh <default 0.10>\n"
         << "  --track-match-thresh <default 0.30>\n"
         << "  --track-buffer <missed inference ticks, default 1>\n"
         << "  --track-min-hits <frames, default 2>\n"
+        << "  --target-use-imu-prediction <true|false, default true>\n"
         << "  --target-filter <kalman|off>\n"
         << "  --target-filter-process-noise <default 25>\n"
         << "  --target-filter-measurement-noise <default 16>\n"
@@ -244,7 +251,8 @@ void print_usage() {
         << "  --yaw-kd <rpm-per-deg-per-s>\n"
         << "  --yaw-deadband <deg>\n"
         << "  --yaw-control-mode <visual-servo|legacy>\n"
-        << "  --yaw-outer-rate-mode <inference>\n"
+        << "  --yaw-outer-rate-mode <inference|fixed>\n"
+        << "  --yaw-outer-rate-hz <default 30>\n"
         << "  --yaw-outer-kp <deg-s-per-deg>\n"
         << "  --yaw-outer-ki <deg-s-per-deg-s>\n"
         << "  --yaw-outer-kd <deg-s-per-deg-s>\n"
@@ -596,6 +604,12 @@ bool parse_args(int argc, char** argv, AppConfig& config, std::string& error) {
             } else {
                 return false;
             }
+        } else if (arg == "--detect-roi-mode") {
+            if (const char* value = need_value("--detect-roi-mode")) {
+                config.detect_roi_mode = value;
+            } else {
+                return false;
+            }
         } else if (arg == "--tracker") {
             if (const char* value = need_value("--tracker")) {
                 config.tracker = value;
@@ -629,6 +643,16 @@ bool parse_args(int argc, char** argv, AppConfig& config, std::string& error) {
         } else if (arg == "--track-min-hits") {
             if (const char* value = need_value("--track-min-hits")) {
                 config.track_min_hits = std::max(1, std::stoi(value));
+            } else {
+                return false;
+            }
+        } else if (arg == "--target-use-imu-prediction") {
+            if (const char* value = need_value("--target-use-imu-prediction")) {
+                bool parsed = true;
+                if (!parse_bool_literal(value, parsed)) {
+                    parsed = std::stoi(value) != 0;
+                }
+                config.target_use_imu_prediction = parsed;
             } else {
                 return false;
             }
@@ -866,6 +890,12 @@ bool parse_args(int argc, char** argv, AppConfig& config, std::string& error) {
         } else if (arg == "--yaw-outer-rate-mode") {
             if (const char* value = need_value("--yaw-outer-rate-mode")) {
                 config.yaw_outer_rate_mode = value;
+            } else {
+                return false;
+            }
+        } else if (arg == "--yaw-outer-rate-hz") {
+            if (const char* value = need_value("--yaw-outer-rate-hz")) {
+                config.yaw_outer_rate_hz = std::stod(value);
             } else {
                 return false;
             }
@@ -1175,6 +1205,17 @@ fs::path make_telemetry_path(const AppConfig& config) {
     return fs::path("outputs/livestream_targets.csv");
 }
 
+std::optional<cv::Rect> select_detection_roi(const AppConfig& config, const MotionPipelineResult& result) {
+    if (config.detect_roi_mode == "full") {
+        return std::nullopt;
+    }
+    if (config.detect_roi_mode == "auto" &&
+        (!result.roi.has_value() || result.motion_confidence < config.target_filter_min_motion_confidence)) {
+        return std::nullopt;
+    }
+    return result.roi;
+}
+
 double rect_iou(const cv::Rect& a, const cv::Rect& b) {
     const cv::Rect overlap = a & b;
     if (overlap.area() <= 0) {
@@ -1402,7 +1443,6 @@ void draw_recording_dashboard(cv::Mat& frame, const RecordingOverlayStats& stats
     put("pred " + point_text(stats.target_state.predicted_center) +
         " vel=(" + fmt1(stats.target_state.velocity_px_s.x) + "," +
         fmt1(stats.target_state.velocity_px_s.y) + ")px/s");
-
     put("yaw " + stats.yaw.status +
         " alpha=" + fmt2(stats.yaw.alpha_deg) +
         " cmd=" + fmt2(stats.yaw.commanded_rpm_inner) +
@@ -1695,20 +1735,29 @@ int main(int argc, char** argv) {
                   << " model=" << source_intrinsics.model << '\n';
     }
 
-    std::unique_ptr<cvproj::YoloOnnxDetector> detector;
-    if (config.detector == "yolo") {
+    std::unique_ptr<cvproj::DetectorBackend> detector;
+    const bool model_is_rknn = fs::path(config.model_path).extension() == ".rknn";
+    if (config.detector == "yolo" || config.detector == "rknn") {
         const float detector_output_conf =
             config.tracker == "bytetrack" ? std::min(config.det_conf, config.track_low_thresh) : config.det_conf;
-        detector = std::make_unique<cvproj::YoloOnnxDetector>(
-            config.model_path, config.det_input_size, detector_output_conf, config.det_nms);
+        const bool use_rknn = config.detector == "rknn" || model_is_rknn;
+        if (use_rknn) {
+            detector = std::make_unique<cvproj::YoloRknnDetector>(
+                config.model_path, config.det_input_size, detector_output_conf, config.det_nms);
+        } else {
+            detector = std::make_unique<cvproj::YoloOnnxDetector>(
+                config.model_path, config.det_input_size, detector_output_conf, config.det_nms);
+        }
         if (!detector->open(&error)) {
             std::cerr << "Failed to open detector model " << config.model_path << ": " << error << '\n';
             return 4;
         }
-        std::cout << "Detector: yolo model=" << config.model_path
+        std::cout << "Detector: " << detector->backend_name()
+                  << " model=" << config.model_path
                   << " input=" << config.det_input_size
                   << " conf=" << detector_output_conf
-                  << " control_conf=" << config.det_conf << '\n';
+                  << " control_conf=" << config.det_conf
+                  << " roi_mode=" << config.detect_roi_mode << '\n';
     }
 
     cvproj::MotionPipelineConfig pipeline_config;
@@ -1864,6 +1913,8 @@ int main(int argc, char** argv) {
     std::uint64_t last_detection_seq = 0;
     std::uint64_t last_tracker_detection_seq = 0;
     std::uint64_t last_yaw_outer_detection_seq = 0;
+    auto last_yaw_outer_fixed_update = std::chrono::steady_clock::now();
+    double last_yaw_outer_source_timestamp_s = -1.0;
     double detection_age_ms = -1.0;
     std::chrono::steady_clock::time_point last_detection_capture_wall_time;
     std::vector<cvproj::Detection> last_detections;
@@ -1977,11 +2028,12 @@ int main(int argc, char** argv) {
         }
 
         if (detector && (processed_frames % config.detect_interval == 0)) {
+            const auto detection_roi = cvproj::select_detection_roi(config, result);
             if (async_pipeline) {
                 latest_detect_slot.store(
                     cvproj::AsyncDetectionJob{
                         packet.frame_bgr.clone(),
-                        result.roi,
+                        detection_roi,
                         result.motion_roi,
                         packet.frame_bgr.size(),
                         capture_wall_time,
@@ -1990,7 +2042,7 @@ int main(int argc, char** argv) {
                     &dropped_detect_jobs);
             } else {
                 const auto detect_start = std::chrono::steady_clock::now();
-                last_detections = detector->detect(packet.frame_bgr, result.roi);
+                last_detections = detector->detect(packet.frame_bgr, detection_roi);
                 last_detection_ms = std::chrono::duration<double, std::milli>(
                                         std::chrono::steady_clock::now() - detect_start)
                                         .count();
@@ -2042,23 +2094,40 @@ int main(int argc, char** argv) {
         if (has_new_detection_for_tracker) {
             last_tracker_detection_seq = last_detection_seq;
         }
-        tracked_targets = target_tracker.update(
-            observations, packet.frame_bgr.cols, packet.frame_bgr.rows, tracker_has_fresh_detection_tick);
-        cvproj::draw_tracked_targets(result.annotated_frame, tracked_targets);
+        const cv::Point2f tracker_prediction_flow =
+            config.target_use_imu_prediction && result.imu_compensation_valid
+                ? cv::Point2f(static_cast<float>(result.imu_flow_dx),
+                              static_cast<float>(result.imu_flow_dy))
+                : cv::Point2f(0.0F, 0.0F);
+        std::optional<cvproj::TrackedTarget> primary_target;
+        if (config.tracker == "bytetrack") {
+            tracked_targets = target_tracker.update(
+                observations,
+                packet.frame_bgr.cols,
+                packet.frame_bgr.rows,
+                tracker_has_fresh_detection_tick,
+                tracker_prediction_flow);
+            cvproj::draw_tracked_targets(result.annotated_frame, tracked_targets);
 
+            auto primary = std::find_if(tracked_targets.begin(),
+                                        tracked_targets.end(),
+                                        [](const cvproj::TrackedTarget& target) { return target.is_primary; });
+            if (primary != tracked_targets.end()) {
+                primary_target = *primary;
+            }
+            const double control_dt_for_filter =
+                result.source_delta_seconds > 0.0 ? result.source_delta_seconds : 1.0 / std::max(1.0, config.fps);
+            target_state = target_filter.update(
+                primary_target, result, packet.frame_bgr.size(), control_dt_for_filter);
+        } else {
+            tracked_targets.clear();
+            target_state = target_filter.update(
+                primary_target, result, packet.frame_bgr.size(), 1.0 / std::max(1.0, config.fps));
+        }
         std::string yaw_error;
         std::string yaw_target_source = "hold";
-        auto primary = std::find_if(tracked_targets.begin(),
-                                    tracked_targets.end(),
-                                    [](const cvproj::TrackedTarget& target) { return target.is_primary; });
-        std::optional<cvproj::TrackedTarget> primary_target;
-        if (primary != tracked_targets.end()) {
-            primary_target = *primary;
-        }
         const double control_dt =
             result.source_delta_seconds > 0.0 ? result.source_delta_seconds : 1.0 / std::max(1.0, config.fps);
-        target_state = target_filter.update(
-            primary_target, result, packet.frame_bgr.size(), control_dt);
         if (async_pipeline && target_state.has_target && target_state.age_ms > config.async_target_max_age_ms) {
             target_state.has_target = false;
             target_state.source = "stale";
@@ -2072,10 +2141,36 @@ int main(int argc, char** argv) {
 
     if (yaw_controller) {
             double control_ts_ms = cvproj::steady_ms_since_epoch(std::chrono::steady_clock::now());
+            const bool fixed_outer_mode = config.yaw_outer_rate_mode == "fixed";
+            const double fixed_outer_interval_ms =
+                config.yaw_outer_rate_hz > 0.0 ? 1000.0 / config.yaw_outer_rate_hz : 0.0;
+            const auto yaw_outer_now = std::chrono::steady_clock::now();
+            const double fixed_outer_elapsed_ms =
+                std::chrono::duration<double, std::milli>(yaw_outer_now - last_yaw_outer_fixed_update).count();
+            const bool have_source_timestamp = packet.timestamp_seconds > 0.0;
+            const double fixed_outer_source_elapsed_ms =
+                have_source_timestamp && last_yaw_outer_source_timestamp_s > 0.0
+                    ? (packet.timestamp_seconds - last_yaw_outer_source_timestamp_s) * 1000.0
+                    : 0.0;
+            const bool fixed_outer_tick =
+                fixed_outer_mode && fixed_outer_interval_ms > 0.0 &&
+                (last_yaw_command.outer_seq == 0 ||
+                 (have_source_timestamp &&
+                  fixed_outer_source_elapsed_ms >= fixed_outer_interval_ms - 0.5) ||
+                 (!have_source_timestamp && fixed_outer_elapsed_ms >= fixed_outer_interval_ms));
             if (config.yaw_test_target_x >= 0.0) {
-                last_yaw_command = yaw_controller->update_from_target(
-                    config.yaw_test_target_x, packet.frame_bgr.cols, control_dt, &yaw_error);
-                last_yaw_command.status += "-test-target";
+                if (fixed_outer_tick || !fixed_outer_mode) {
+                    last_yaw_command = yaw_controller->update_from_target(
+                        config.yaw_test_target_x, packet.frame_bgr.cols, control_dt, &yaw_error);
+                    last_yaw_command.status += "-test-target";
+                    last_yaw_outer_fixed_update = yaw_outer_now;
+                    if (have_source_timestamp) {
+                        last_yaw_outer_source_timestamp_s = packet.timestamp_seconds;
+                    }
+                } else {
+                    last_yaw_command = yaw_controller->snapshot();
+                    last_yaw_command.status += "-test-target";
+                }
                 yaw_target_source = "test-target";
             } else if (target_state.has_target) {
                 const double target_cx = target_state.filtered_center.x;
@@ -2085,7 +2180,7 @@ int main(int argc, char** argv) {
                 const bool has_new_inference_target =
                     last_detection_seq != 0 && last_detection_seq != last_yaw_outer_detection_seq &&
                     !detection_is_stale;
-                if (has_new_inference_target || config.detector != "yolo") {
+                if (has_new_inference_target || fixed_outer_tick || !detector) {
                     constexpr double kPi = 3.14159265358979323846;
                     const double yaw_cx = config.yaw_cx_px >= 0.0 ? config.yaw_cx_px
                                                                   : static_cast<double>(packet.frame_bgr.cols) * 0.5;
@@ -2105,7 +2200,15 @@ int main(int argc, char** argv) {
                         active_detection_frame_id,
                         control_dt,
                         &yaw_error);
-                    last_yaw_outer_detection_seq = last_detection_seq;
+                    if (has_new_inference_target) {
+                        last_yaw_outer_detection_seq = last_detection_seq;
+                    }
+                    if (fixed_outer_tick || !fixed_outer_mode) {
+                        last_yaw_outer_fixed_update = yaw_outer_now;
+                        if (have_source_timestamp) {
+                            last_yaw_outer_source_timestamp_s = packet.timestamp_seconds;
+                        }
+                    }
                 } else {
                     last_yaw_command = yaw_controller->snapshot();
                 }
@@ -2188,7 +2291,8 @@ int main(int argc, char** argv) {
                     << "primary_track_id,primary_track_state,primary_track_missed_frames,yaw_target_source,"
                     << "raw_cx,raw_cy,filtered_cx,filtered_cy,predicted_cx,predicted_cy,"
                     << "target_vx_px_s,target_vy_px_s,target_filter_source,target_age_ms,"
-                    << "motion_confidence,global_dx,global_dy,"
+                    << "motion_confidence,global_dx,global_dy,imu_flow_dx,imu_flow_dy,"
+                    << "compensated_global_dx,compensated_global_dy,imu_compensation_valid,"
                     << "capture_ts_ms,preprocess_ms,motion_ms,inference_ms,track_filter_ms,render_ms,"
                     << "control_ts_ms,frame_age_ms,target_age_ms_async,queue_wait_ms,"
                     << "detection_frame_id,tracking_frame_id,detection_age_ms,"
@@ -2219,7 +2323,8 @@ int main(int argc, char** argv) {
                 << "x,y,w,h,cx,cy,norm_cx,norm_cy,offset_x,offset_y,roi_x,roi_y,roi_w,roi_h,yaw_target_source,"
                 << "raw_cx,raw_cy,filtered_cx,filtered_cy,predicted_cx,predicted_cy,"
                 << "target_vx_px_s,target_vy_px_s,target_filter_source,target_age_ms,"
-                << "motion_confidence,global_dx,global_dy,"
+                << "motion_confidence,global_dx,global_dy,imu_flow_dx,imu_flow_dy,"
+                << "compensated_global_dx,compensated_global_dy,imu_compensation_valid,"
                 << "capture_ts_ms,preprocess_ms,motion_ms,inference_ms,track_filter_ms,render_ms,"
                 << "control_ts_ms,frame_age_ms,target_age_ms_async,queue_wait_ms,"
                 << "detection_frame_id,tracking_frame_id,detection_age_ms,"
@@ -2287,6 +2392,9 @@ int main(int argc, char** argv) {
                          << target_state.velocity_px_s.x << ',' << target_state.velocity_px_s.y << ','
                          << target_state.source << ',' << target_state.age_ms << ','
                          << result.motion_confidence << ',' << result.global_dx << ',' << result.global_dy << ','
+                         << result.imu_flow_dx << ',' << result.imu_flow_dy << ','
+                         << result.compensated_global_dx << ',' << result.compensated_global_dy << ','
+                         << (result.imu_compensation_valid ? 1 : 0) << ','
                          << capture_ts_ms << ',' << preprocess_ms << ',' << motion_ms << ','
                          << inference_ms << ',' << track_filter_ms << ',' << render_ms << ','
                          << control_ts_ms << ',' << frame_age_ms << ',' << target_state.age_ms << ','
@@ -2341,6 +2449,9 @@ int main(int argc, char** argv) {
                                << ',' << target_state.velocity_px_s.x << ',' << target_state.velocity_px_s.y
                                << ',' << target_state.source << ',' << target_state.age_ms
                                << ',' << result.motion_confidence << ',' << result.global_dx << ',' << result.global_dy
+                               << ',' << result.imu_flow_dx << ',' << result.imu_flow_dy
+                               << ',' << result.compensated_global_dx << ',' << result.compensated_global_dy
+                               << ',' << (result.imu_compensation_valid ? 1 : 0)
                                << ',' << capture_ts_ms << ',' << preprocess_ms << ',' << motion_ms
                                << ',' << inference_ms << ',' << track_filter_ms << ',' << render_ms
                                << ',' << control_ts_ms << ',' << frame_age_ms << ',' << target_state.age_ms
@@ -2374,8 +2485,7 @@ int main(int argc, char** argv) {
                                << ',' << last_yaw_command.alpha_rate_deg_s
                                << ',' << last_yaw_command.omega_axis_deg_s
                                << ',' << last_yaw_command.missed_feedback_count
-                               << ',' << (last_yaw_command.accel_limited ? 1 : 0)
-                               << '\n';
+                               << ',' << (last_yaw_command.accel_limited ? 1 : 0) << '\n';
             } else {
                 for (const auto& target : tracked_targets) {
                     const int cx = target.box.x + target.box.width / 2;
@@ -2408,6 +2518,9 @@ int main(int argc, char** argv) {
                                    << ',' << target_state.velocity_px_s.x << ',' << target_state.velocity_px_s.y
                                    << ',' << target_state.source << ',' << target_state.age_ms
                                    << ',' << result.motion_confidence << ',' << result.global_dx << ',' << result.global_dy
+                                   << ',' << result.imu_flow_dx << ',' << result.imu_flow_dy
+                                   << ',' << result.compensated_global_dx << ',' << result.compensated_global_dy
+                                   << ',' << (result.imu_compensation_valid ? 1 : 0)
                                    << ',' << capture_ts_ms << ',' << preprocess_ms << ',' << motion_ms
                                    << ',' << inference_ms << ',' << track_filter_ms << ',' << render_ms
                                    << ',' << control_ts_ms << ',' << frame_age_ms << ',' << target_state.age_ms

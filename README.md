@@ -6,7 +6,7 @@
 
 - 主目标从 `RealSense T265 + VIO` 转为 `Hikrobot MV-CS016-10UC + 高帧率图像处理`
 - 保留项目真正的意图：在运动环境中快速找出值得处理的区域，并对目标做稳定的图像级处理与跟踪
-- 当前 C++ 热路径不包含陀螺仪/VIO 相关的光流补偿，优先保证取流、处理、录制、工程结构和高 FPS 可达性
+- 当前 C++ 热路径已经接入 T265 pose 角速度，用于对固定网格 LK 光流做相机旋转补偿
 - 当前仓库同时支持 `Hikrobot MVS SDK` 与 `USB3 Vision / GenICam`
 - 对“后续要接电机控制”的场景，优先建议走 `Hikrobot MVS SDK`
 - `Aravis` 保留为无 SDK 场景下的标准协议回退路径
@@ -978,7 +978,94 @@ configs/t265_yaw_real.conf
 - 使用 T265 fisheye 1 单路 `848x800 @ 30Hz Y8` 图像进入主链。
 - 启动时读取 T265 实际内参，并优先用 `atan2((target_x - cx) / fx)` 计算 yaw 目标角。
 - 使用 `can0 @ 1Mbps`，通过 SocketCAN 向 yaw 电机发送真实 `0x07 0x35` 速度控制帧。
-- 将 yaw 角度限制在软件零点两侧 `-30° ~ +30°`，默认最大输出速度为 `40 rpm`。
+- 按配置文件中的 `yaw-max-angle` 和 `yaw-max-rpm` 限制软件零点两侧角度与最大输出速度。
+
+### T265 模型切换
+
+当前 T265 实机链路可以使用两套 YOLOv8n ONNX 模型：
+
+```text
+src/yolov8n_224.onnx
+src/widerperson_yolov8n.onnx
+```
+
+`configs/t265_yaw_real.conf` 保留速度优先配置，使用 `src/yolov8n_224.onnx` 和 `det-input-size=224`。
+
+`configs/t265_yaw_widerperson.conf` 使用自训练 WiderPerson 模型：
+
+```text
+model=src/widerperson_yolov8n.onnx
+det-input-size=640
+detect-roi-mode=full
+track-high-thresh=0.25
+```
+
+该模型来自 `best.pt` 导出的 ONNX，训练参数已保存到 `configs/widerperson_args.yaml`。ONNX 元数据为 `task=detect`、`imgsz=[640, 640]`、`names={0: 'person'}`，输出 shape 为 `1x5x8400`，可以被当前 C++ `YoloOnnxDetector` 直接解析。C++ 程序只直接加载 ONNX；`best.pt` 作为训练权重和重新导出的来源保留，不作为 `--model` 直接传入。该配置使用全帧检测，先保证自训练模型稳定识别人；`track-high-thresh=0.25` 与 `det-conf=0.25` 对齐，避免有检测但无法创建 ByteTrack track。
+
+当前 `YoloOnnxDetector` 使用 letterbox 预处理，不再把非正方形画面直接拉伸到 `640x640`，输出框会反变换回原图或 ROI 坐标。若后续想重新使用光流 ROI 加速，可以把 `detect-roi-mode` 改为 `auto` 或 `motion`。
+
+T265 pose 角速度会进入固定网格光流补偿：程序先用 IMU/pose 生成相机旋转导致的光流向量场，再从 LK 稀疏光流中扣除该宏观运动。CSV 中可检查：
+
+```text
+global_dx,global_dy
+imu_flow_dx,imu_flow_dy
+compensated_global_dx,compensated_global_dy
+imu_compensation_valid
+```
+
+ByteTracker 的预测阶段只使用 T265 IMU/pose 估计出的 `imu_flow_dx/dy` 作为相机运动先验；不会再使用稀疏光流 residual 来推动 track。`compensated_global_dx/dy` 仍会写入 CSV，用于观察光流在扣除 IMU 旋转补偿后的残余运动，但不进入 tracker prediction。YOLO 检测结果仍负责校正 track 和选择 primary target。
+
+Yaw 外环默认使用固定 `30Hz` 更新：
+
+```text
+yaw-outer-rate-mode=fixed
+yaw-outer-rate-hz=30
+yaw-outer-min-update-interval-ms=0
+```
+
+主循环会用最新 `TargetStateFilter` 输出按 30Hz 节拍刷新 `desired_rpm` 给 1kHz 内环；T265 路径优先按 fisheye 图像时间戳触发，避免 pose/frameset 让主循环重复处理同一图像时扰乱外环节拍。YOLO/ByteTrack/Kalman 仍按各自频率更新目标状态。这样可以避免只在新推理帧到达时才更新 yaw 外环导致的电机速度命令跳变。
+
+使用自训练模型运行：
+
+```bash
+./scripts/run_t265_yaw_real.sh configs/t265_yaw_widerperson.conf --yaw-dry-run --max-frames 300 --headless
+```
+
+### RKNN NPU 模型
+
+Rock5B/RK3588 上也可以使用 RKNN Runtime 后端：
+
+```bash
+CVPROJ_SETUP_CAN=0 ./scripts/run_t265_yaw_real.sh configs/t265_yaw_rknn.conf --yaw-dry-run --max-frames 300 --headless
+```
+
+或手动指定：
+
+```bash
+./build-opencv410/cpp/cvproj_capture \
+  --backend t265 \
+  --detector rknn \
+  --model models/rknn/widerperson_yolov8n_640_int8.rknn \
+  --det-input-size 640 \
+  --detect-roi-mode full \
+  --yaw-dry-run
+```
+
+工程会从 `third_party/rknn/include/rknn_api.h` 和 `third_party/rknn/lib/librknnrt.so` 链接 RKNN Runtime，并在启动时打印 RKNN 输入/输出 tensor 属性。当前已验证 RKNN 后端可以初始化和运行，离线视频测试检测器吞吐约 `31-36Hz`。
+
+注意：当前这份 `models/rknn/widerperson_yolov8n_640_int8.rknn` 的输出属性为 `1x5x8400 INT8`，但 score 通道最大值为 `0`，无法为 YOLOv8 后处理提供有效置信度。程序会打印：
+
+```text
+WARN: RKNN output score channel max is 0
+```
+
+这不是主程序解析失败，而是该 INT8 RKNN 导出把 bbox 坐标和很小的置信度放在同一个量化输出 tensor 中，score 精度被量化丢失。需要重新导出 RKNN：优先使用 FP16/FP32 输出，或将 bbox 与 score 分离/保留 score 的反量化精度。新的 RKNN 只要输出仍是 `1x5x8400` 或 `1x8400x5` 且 score 通道有有效概率值，就可以直接替换 `configs/t265_yaw_rknn.conf` 中的 `model=`。
+
+使用默认速度优先模型运行：
+
+```bash
+./scripts/run_t265_yaw_real.sh configs/t265_yaw_real.conf --yaw-dry-run --max-frames 300 --headless
+```
 
 本机 T265 实测枚举：
 

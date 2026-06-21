@@ -356,6 +356,7 @@ cpp/CMakeFiles/cvproj_capture.dir/src/main.cpp.o: \
  /home/rededge/workspace/CV-proj-2026/cpp/include/cvproj/socketcan_gimbal.hpp \
  /home/rededge/workspace/CV-proj-2026/cpp/include/cvproj/target_state_filter.hpp \
  /home/rededge/opt/opencv-4.10.0/include/opencv4/opencv2/video/tracking.hpp \
+ /home/rededge/workspace/CV-proj-2026/cpp/include/cvproj/yolo_detector.hpp \
  /home/rededge/workspace/CV-proj-2026/cpp/include/cvproj/yolo_onnx_detector.hpp \
  /home/rededge/opt/opencv-4.10.0/include/opencv4/opencv2/dnn.hpp \
  /home/rededge/opt/opencv-4.10.0/include/opencv4/opencv2/dnn/dnn.hpp \
@@ -368,4 +369,6 @@ cpp/CMakeFiles/cvproj_capture.dir/src/main.cpp.o: \
  /home/rededge/opt/opencv-4.10.0/include/opencv4/opencv2/dnn/layer.hpp \
  /home/rededge/opt/opencv-4.10.0/include/opencv4/opencv2/dnn/dnn.inl.hpp \
  /home/rededge/opt/opencv-4.10.0/include/opencv4/opencv2/dnn/utils/inference_engine.hpp \
- /home/rededge/opt/opencv-4.10.0/include/opencv4/opencv2/dnn/dnn.hpp
+ /home/rededge/opt/opencv-4.10.0/include/opencv4/opencv2/dnn/dnn.hpp \
+ /home/rededge/workspace/CV-proj-2026/cpp/include/cvproj/yolo_rknn_detector.hpp \
+ /home/rededge/workspace/CV-proj-2026/third_party/rknn/include/rknn_api.h

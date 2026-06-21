@@ -19,6 +19,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/rededge/workspace/CV-proj-2026/cpp/src/socketcan_gimbal.cpp" "cpp/CMakeFiles/cvproj_capture.dir/src/socketcan_gimbal.cpp.o" "gcc" "cpp/CMakeFiles/cvproj_capture.dir/src/socketcan_gimbal.cpp.o.d"
   "/home/rededge/workspace/CV-proj-2026/cpp/src/target_state_filter.cpp" "cpp/CMakeFiles/cvproj_capture.dir/src/target_state_filter.cpp.o" "gcc" "cpp/CMakeFiles/cvproj_capture.dir/src/target_state_filter.cpp.o.d"
   "/home/rededge/workspace/CV-proj-2026/cpp/src/yolo_onnx_detector.cpp" "cpp/CMakeFiles/cvproj_capture.dir/src/yolo_onnx_detector.cpp.o" "gcc" "cpp/CMakeFiles/cvproj_capture.dir/src/yolo_onnx_detector.cpp.o.d"
+  "/home/rededge/workspace/CV-proj-2026/cpp/src/yolo_rknn_detector.cpp" "cpp/CMakeFiles/cvproj_capture.dir/src/yolo_rknn_detector.cpp.o" "gcc" "cpp/CMakeFiles/cvproj_capture.dir/src/yolo_rknn_detector.cpp.o.d"
   )
 
 # Targets to which this target links which contain Fortran sources.

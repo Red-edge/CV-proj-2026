@@ -36,6 +36,7 @@ private:
     RealSenseT265Config config_;
     CameraIntrinsics intrinsics_;
     bool have_intrinsics_ = false;
+    double last_pose_timestamp_seconds_ = 0.0;
     std::unique_ptr<Impl> impl_;
 };
 

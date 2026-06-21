@@ -1,17 +1,12 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <string>
 
 #include <opencv2/core.hpp>
 
 namespace cvproj {
-
-struct FramePacket {
-    cv::Mat frame_bgr;
-    std::int64_t frame_id = -1;
-    double timestamp_seconds = 0.0;
-};
 
 struct CameraIntrinsics {
     int width = 0;
@@ -21,6 +16,23 @@ struct CameraIntrinsics {
     double cx = 0.0;
     double cy = 0.0;
     std::string model;
+};
+
+struct CameraMotion {
+    bool valid = false;
+    double dt_seconds = 0.0;
+    double angular_velocity_x_rad_s = 0.0;
+    double angular_velocity_y_rad_s = 0.0;
+    double angular_velocity_z_rad_s = 0.0;
+    double timestamp_seconds = 0.0;
+};
+
+struct FramePacket {
+    cv::Mat frame_bgr;
+    std::int64_t frame_id = -1;
+    double timestamp_seconds = 0.0;
+    std::optional<CameraIntrinsics> intrinsics;
+    std::optional<CameraMotion> camera_motion;
 };
 
 class FrameSource {

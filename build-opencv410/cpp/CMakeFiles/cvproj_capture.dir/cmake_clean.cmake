@@ -21,6 +21,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/cvproj_capture.dir/src/target_state_filter.cpp.o.d"
   "CMakeFiles/cvproj_capture.dir/src/yolo_onnx_detector.cpp.o"
   "CMakeFiles/cvproj_capture.dir/src/yolo_onnx_detector.cpp.o.d"
+  "CMakeFiles/cvproj_capture.dir/src/yolo_rknn_detector.cpp.o"
+  "CMakeFiles/cvproj_capture.dir/src/yolo_rknn_detector.cpp.o.d"
   "cvproj_capture"
   "cvproj_capture.pdb"
 )

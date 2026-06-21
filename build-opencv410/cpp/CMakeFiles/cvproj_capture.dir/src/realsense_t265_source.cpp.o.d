@@ -162,7 +162,8 @@ cpp/CMakeFiles/cvproj_capture.dir/src/realsense_t265_source.cpp.o: \
  /usr/include/c++/13/bits/memory_resource.h /usr/include/c++/13/cstddef \
  /usr/include/c++/13/bits/uses_allocator_args.h \
  /home/rededge/workspace/CV-proj-2026/cpp/include/cvproj/frame_source.hpp \
- /usr/include/c++/13/cstdint \
+ /usr/include/c++/13/cstdint /usr/include/c++/13/optional \
+ /usr/include/c++/13/bits/enable_special_members.h \
  /home/rededge/opt/opencv-4.10.0/include/opencv4/opencv2/core.hpp \
  /home/rededge/opt/opencv-4.10.0/include/opencv4/opencv2/core/cvdef.h \
  /home/rededge/opt/opencv-4.10.0/include/opencv4/opencv2/core/version.hpp \
@@ -264,7 +265,6 @@ cpp/CMakeFiles/cvproj_capture.dir/src/realsense_t265_source.cpp.o: \
  /usr/include/c++/13/bits/unordered_map.h \
  /usr/include/c++/13/bits/hashtable.h \
  /usr/include/c++/13/bits/hashtable_policy.h \
- /usr/include/c++/13/bits/enable_special_members.h \
  /usr/include/c++/13/bits/node_handle.h \
  /usr/include/c++/13/bits/erase_if.h /usr/include/c++/13/mutex \
  /usr/include/c++/13/bits/chrono.h /usr/include/c++/13/ratio \

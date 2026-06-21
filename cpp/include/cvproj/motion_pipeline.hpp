@@ -29,6 +29,11 @@ struct MotionPipelineResult {
     double motion_confidence = 0.0;
     double global_dx = 0.0;
     double global_dy = 0.0;
+    double imu_flow_dx = 0.0;
+    double imu_flow_dy = 0.0;
+    double compensated_global_dx = 0.0;
+    double compensated_global_dy = 0.0;
+    bool imu_compensation_valid = false;
     double fps = 0.0;
     double processing_ms = 0.0;
     double source_delta_seconds = 0.0;

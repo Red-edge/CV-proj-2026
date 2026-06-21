@@ -9,6 +9,7 @@ set(CVPROJ_SOURCES
     src/hikrobot_mvs_source.cpp
     src/mjpeg_server.cpp
     src/yolo_onnx_detector.cpp
+    src/yolo_rknn_detector.cpp
     src/socketcan_gimbal.cpp
     src/target_state_filter.cpp
     src/realsense_t265_source.cpp
@@ -25,6 +26,37 @@ target_link_libraries(cvproj_capture
     PRIVATE
         ${OpenCV_LIBS}
 )
+
+find_path(RKNN_INCLUDE_DIR
+    NAMES rknn_api.h
+    HINTS
+        ${CMAKE_SOURCE_DIR}/third_party/rknn/include
+        /usr/local/include
+        /usr/include
+)
+find_library(RKNN_RUNTIME_LIBRARY
+    NAMES rknnrt librknnrt
+    HINTS
+        ${CMAKE_SOURCE_DIR}/third_party/rknn/lib
+        /usr/local/lib
+        /usr/lib
+        /usr/lib/aarch64-linux-gnu
+)
+if(RKNN_INCLUDE_DIR AND RKNN_RUNTIME_LIBRARY)
+    target_compile_definitions(cvproj_capture PRIVATE CVPROJ_HAS_RKNN=1)
+    target_include_directories(cvproj_capture PRIVATE ${RKNN_INCLUDE_DIR})
+    target_link_libraries(cvproj_capture PRIVATE ${RKNN_RUNTIME_LIBRARY})
+    get_filename_component(RKNN_RUNTIME_LIB_DIR "${RKNN_RUNTIME_LIBRARY}" DIRECTORY)
+    set_target_properties(cvproj_capture PROPERTIES
+        BUILD_RPATH "${RKNN_RUNTIME_LIB_DIR}"
+        INSTALL_RPATH "${RKNN_RUNTIME_LIB_DIR}"
+    )
+    message(STATUS "RKNN runtime enabled")
+    message(STATUS "  include: ${RKNN_INCLUDE_DIR}")
+    message(STATUS "  library: ${RKNN_RUNTIME_LIBRARY}")
+else()
+    message(WARNING "RKNN runtime not found. Build will not support --detector rknn.")
+endif()
 
 if(CVPROJ_ENABLE_ARAVIS)
     pkg_check_modules(ARAVIS IMPORTED_TARGET aravis-0.8)

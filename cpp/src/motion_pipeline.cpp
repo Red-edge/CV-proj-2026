@@ -20,6 +20,30 @@ double median_of(std::vector<float> values) {
     std::nth_element(values.begin(), mid, values.end());
     return static_cast<double>(*mid);
 }
+
+cv::Point2f rotational_flow_px(const cv::Point2f& point,
+                               const CameraIntrinsics& intrinsics,
+                               const CameraMotion& motion,
+                               double fallback_dt_seconds) {
+    if (!motion.valid || intrinsics.fx <= 0.0 || intrinsics.fy <= 0.0) {
+        return cv::Point2f(0.0F, 0.0F);
+    }
+    const double dt = motion.dt_seconds > 0.0 ? motion.dt_seconds : fallback_dt_seconds;
+    if (dt <= 0.0 || dt > 0.25) {
+        return cv::Point2f(0.0F, 0.0F);
+    }
+
+    const double x = (static_cast<double>(point.x) - intrinsics.cx) / intrinsics.fx;
+    const double y = (static_cast<double>(point.y) - intrinsics.cy) / intrinsics.fy;
+    const double wx = motion.angular_velocity_x_rad_s;
+    const double wy = motion.angular_velocity_y_rad_s;
+    const double wz = motion.angular_velocity_z_rad_s;
+
+    const double x_dot = -wx * x * y + wy * (1.0 + x * x) - wz * y;
+    const double y_dot = -wx * (1.0 + y * y) + wy * x * y + wz * x;
+    return cv::Point2f(static_cast<float>(intrinsics.fx * x_dot * dt),
+                       static_cast<float>(intrinsics.fy * y_dot * dt));
+}
 }  // namespace
 
 MotionPipeline::MotionPipeline(MotionPipelineConfig config) : config_(std::move(config)) {
@@ -61,6 +85,12 @@ MotionPipelineResult MotionPipeline::process(const FramePacket& packet) {
     std::vector<cv::Point2f> compensated_points = fixed_points_;
     double global_dx = 0.0;
     double global_dy = 0.0;
+    double imu_flow_dx = 0.0;
+    double imu_flow_dy = 0.0;
+    double compensated_global_dx = 0.0;
+    double compensated_global_dy = 0.0;
+    const bool imu_compensation_valid =
+        packet.intrinsics.has_value() && packet.camera_motion.has_value() && packet.camera_motion->valid;
 
     if (!prev_gray_.empty()) {
         std::vector<cv::Point2f> next_points;
@@ -79,31 +109,70 @@ MotionPipelineResult MotionPipeline::process(const FramePacket& packet) {
 
         std::vector<float> dxs;
         std::vector<float> dys;
+        std::vector<float> imu_dxs;
+        std::vector<float> imu_dys;
+        std::vector<float> residual_dxs;
+        std::vector<float> residual_dys;
         dxs.reserve(next_points.size());
         dys.reserve(next_points.size());
+        imu_dxs.reserve(next_points.size());
+        imu_dys.reserve(next_points.size());
+        residual_dxs.reserve(next_points.size());
+        residual_dys.reserve(next_points.size());
         for (std::size_t i = 0; i < next_points.size(); ++i) {
             if (i >= status.size() || status[i] == 0) {
                 continue;
             }
-            dxs.push_back(next_points[i].x - fixed_points_[i].x);
-            dys.push_back(next_points[i].y - fixed_points_[i].y);
+            const float raw_dx = next_points[i].x - fixed_points_[i].x;
+            const float raw_dy = next_points[i].y - fixed_points_[i].y;
+            const cv::Point2f imu_flow =
+                imu_compensation_valid
+                    ? rotational_flow_px(fixed_points_[i],
+                                         *packet.intrinsics,
+                                         *packet.camera_motion,
+                                         result.source_delta_seconds)
+                    : cv::Point2f(0.0F, 0.0F);
+            dxs.push_back(raw_dx);
+            dys.push_back(raw_dy);
+            imu_dxs.push_back(imu_flow.x);
+            imu_dys.push_back(imu_flow.y);
+            residual_dxs.push_back(raw_dx - imu_flow.x);
+            residual_dys.push_back(raw_dy - imu_flow.y);
         }
 
         global_dx = median_of(dxs);
         global_dy = median_of(dys);
+        imu_flow_dx = median_of(imu_dxs);
+        imu_flow_dy = median_of(imu_dys);
+        compensated_global_dx = median_of(residual_dxs);
+        compensated_global_dy = median_of(residual_dys);
 
         for (std::size_t i = 0; i < fixed_points_.size() && i < next_points.size(); ++i) {
             if (i >= status.size() || status[i] == 0) {
                 continue;
             }
-            const float dx = static_cast<float>((next_points[i].x - fixed_points_[i].x) - global_dx);
-            const float dy = static_cast<float>((next_points[i].y - fixed_points_[i].y) - global_dy);
+            const cv::Point2f imu_flow =
+                imu_compensation_valid
+                    ? rotational_flow_px(fixed_points_[i],
+                                         *packet.intrinsics,
+                                         *packet.camera_motion,
+                                         result.source_delta_seconds)
+                    : cv::Point2f(0.0F, 0.0F);
+            const float dx = static_cast<float>((next_points[i].x - fixed_points_[i].x) -
+                                                imu_flow.x - compensated_global_dx);
+            const float dy = static_cast<float>((next_points[i].y - fixed_points_[i].y) -
+                                                imu_flow.y - compensated_global_dy);
             magnitudes[i] = std::sqrt(dx * dx + dy * dy);
             compensated_points[i] = cv::Point2f(fixed_points_[i].x + dx, fixed_points_[i].y + dy);
         }
     }
     result.global_dx = global_dx;
     result.global_dy = global_dy;
+    result.imu_flow_dx = imu_flow_dx;
+    result.imu_flow_dy = imu_flow_dy;
+    result.compensated_global_dx = compensated_global_dx;
+    result.compensated_global_dy = compensated_global_dy;
+    result.imu_compensation_valid = imu_compensation_valid;
 
     prev_gray_ = gray;
 

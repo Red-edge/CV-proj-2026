@@ -23,6 +23,28 @@ constexpr std::array<const char*, 80> kCocoNames = {
     "laptop",        "mouse",        "remote",        "keyboard",    "cell phone",   "microwave",    "oven",
     "toaster",       "sink",         "refrigerator",  "book",        "clock",        "vase",         "scissors",
     "teddy bear",    "hair drier",   "toothbrush"};
+
+struct LetterboxInfo {
+    float scale = 1.0F;
+    int pad_x = 0;
+    int pad_y = 0;
+};
+
+cv::Mat letterbox(const cv::Mat& input, int input_size, LetterboxInfo& info) {
+    const float scale = std::min(static_cast<float>(input_size) / static_cast<float>(input.cols),
+                                 static_cast<float>(input_size) / static_cast<float>(input.rows));
+    const int resized_w = std::max(1, cvRound(static_cast<float>(input.cols) * scale));
+    const int resized_h = std::max(1, cvRound(static_cast<float>(input.rows) * scale));
+    info.scale = scale;
+    info.pad_x = (input_size - resized_w) / 2;
+    info.pad_y = (input_size - resized_h) / 2;
+
+    cv::Mat resized;
+    cv::resize(input, resized, cv::Size(resized_w, resized_h), 0.0, 0.0, cv::INTER_LINEAR);
+    cv::Mat canvas(input_size, input_size, input.type(), cv::Scalar(114, 114, 114));
+    resized.copyTo(canvas(cv::Rect(info.pad_x, info.pad_y, resized_w, resized_h)));
+    return canvas;
+}
 }  // namespace
 
 YoloOnnxDetector::YoloOnnxDetector(std::string model_path,
@@ -64,8 +86,10 @@ std::vector<Detection> YoloOnnxDetector::detect(const cv::Mat& frame_bgr, const 
     }
 
     const cv::Mat input = frame_bgr(valid_roi);
-    cv::Mat blob =
-        cv::dnn::blobFromImage(input, 1.0 / 255.0, cv::Size(input_size_, input_size_), cv::Scalar(), true, false);
+    LetterboxInfo letterbox_info;
+    const cv::Mat network_input = letterbox(input, input_size_, letterbox_info);
+    cv::Mat blob = cv::dnn::blobFromImage(
+        network_input, 1.0 / 255.0, cv::Size(input_size_, input_size_), cv::Scalar(), true, false);
 
     net_.setInput(blob);
     cv::Mat output = net_.forward();
@@ -82,19 +106,16 @@ std::vector<Detection> YoloOnnxDetector::detect(const cv::Mat& frame_bgr, const 
     boxes.reserve(candidates);
     scores.reserve(candidates);
 
-    const float scale_x = static_cast<float>(input.cols) / static_cast<float>(input_size_);
-    const float scale_y = static_cast<float>(input.rows) / static_cast<float>(input_size_);
-
     for (int i = 0; i < candidates; ++i) {
         const float confidence = reshaped.at<float>(4 + kPersonClassId, i);
         if (confidence < conf_threshold_) {
             continue;
         }
 
-        const float cx = reshaped.at<float>(0, i) * scale_x;
-        const float cy = reshaped.at<float>(1, i) * scale_y;
-        const float w = reshaped.at<float>(2, i) * scale_x;
-        const float h = reshaped.at<float>(3, i) * scale_y;
+        const float cx = (reshaped.at<float>(0, i) - static_cast<float>(letterbox_info.pad_x)) / letterbox_info.scale;
+        const float cy = (reshaped.at<float>(1, i) - static_cast<float>(letterbox_info.pad_y)) / letterbox_info.scale;
+        const float w = reshaped.at<float>(2, i) / letterbox_info.scale;
+        const float h = reshaped.at<float>(3, i) / letterbox_info.scale;
 
         const int x = std::max(0, cvRound(cx - 0.5F * w));
         const int y = std::max(0, cvRound(cy - 0.5F * h));

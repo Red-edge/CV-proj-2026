@@ -87,12 +87,13 @@ std::vector<std::pair<int, int>> ByteTrackTracker::match_tracks(
 std::vector<TrackedTarget> ByteTrackTracker::update(const std::vector<TrackerDetection>& detections,
                                                     int frame_width,
                                                     int frame_height,
-                                                    bool detections_are_fresh) {
+                                                    bool detections_are_fresh,
+                                                    cv::Point2f prediction_flow) {
     for (auto& track : tracks_) {
         track.updated = false;
         track.detector_tick = detections_are_fresh;
-        track.box.x += track.velocity.x;
-        track.box.y += track.velocity.y;
+        track.box.x += track.velocity.x + prediction_flow.x;
+        track.box.y += track.velocity.y + prediction_flow.y;
         ++track.age;
         if (detections_are_fresh) {
             ++track.missed_frames;

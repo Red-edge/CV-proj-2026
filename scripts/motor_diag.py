@@ -3,6 +3,8 @@
 
 The script sends only stop/read commands. It does not write configuration,
 reset zero, or command non-zero torque/speed.
+
+The script can be used to query the motor's current position/velocity/torque
 """
 
 import argparse
